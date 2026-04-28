@@ -218,7 +218,9 @@ export function GameTableScreen() {
           }}
         >
           <PlayerBadge player={opponentTop} />
-          <OpponentHand count={opponentTop.handCount} holes={opponentTop.holes} />
+          <div style={{ transform: 'rotate(180deg)' }}>
+            <OpponentHand count={opponentTop.handCount} holes={opponentTop.holes} />
+          </div>
         </div>
       )}
 
