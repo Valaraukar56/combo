@@ -128,6 +128,7 @@ interface GameContextValue {
   powerOpponentPeek: (targetId: string, idx: number) => Promise<void>;
   powerSwap: (selfIdx: number, targetId: string, targetIdx: number) => Promise<void>;
   powerSkip: () => Promise<void>;
+  triggerDevPower: (rank: 'J' | 'Q' | 'K') => Promise<void>;
   clearReveal: () => void;
   clearSnap: () => void;
 }
@@ -309,6 +310,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     },
     powerSkip: async () => {
       await emit('game:power:skip');
+    },
+    triggerDevPower: async (rank) => {
+      await emit('dev:trigger-power', { rank });
     },
     clearReveal: () => setLastReveal(null),
     clearSnap: () => setLastSnap(null),

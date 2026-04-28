@@ -188,6 +188,27 @@ export function setupSocketServer(io: Server): void {
       }
     );
 
+    socket.on('dev:trigger-power', (data: { rank?: 'J' | 'Q' | 'K' }, ack?: AckFn) => {
+      if (!user.isAdmin) return ack?.({ ok: false, error: 'forbidden' });
+      const room = currentRoom(socket);
+      if (!room) return ack?.({ ok: false, error: 'no_room' });
+      const rank = data?.rank;
+      if (rank !== 'J' && rank !== 'Q' && rank !== 'K') {
+        return ack?.({ ok: false, error: 'invalid_rank' });
+      }
+      const idx = room.players.findIndex((p) => p.id === user.id);
+      if (idx < 0) return ack?.({ ok: false, error: 'not_in_room' });
+      const type = rank === 'J' ? 'self-peek' : rank === 'Q' ? 'opponent-peek' : 'swap';
+      room.currentTurnIdx = idx;
+      room.drawnCard = null;
+      room.drawnFromDiscard = false;
+      room.pendingPower = { rank, type };
+      room.phase = 'power';
+      broadcastRoomState(io, room);
+      sendPrivateHandsAll(io, room);
+      ack?.({ ok: true });
+    });
+
     socket.on('game:power:skip', (_: unknown, ack?: AckFn) => {
       const room = currentRoom(socket);
       if (!room) return ack?.({ ok: false, error: 'no_room' });
