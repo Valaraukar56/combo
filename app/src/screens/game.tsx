@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Avatar, Button, GameTopBar, Modal, Page, SectionHeading } from '../components/ui';
 import { PlayingCard } from '../components/Card';
 import { useToast } from '../components/Toast';
@@ -463,6 +463,49 @@ function PlayerBadge({ player }: { player: PublicPlayer }) {
   );
 }
 
+interface SelfCardGridProps {
+  handCount: number;
+  holes?: number[];
+  cardSize: 'sm' | 'md' | 'lg';
+  labelSize: number;
+  renderSlot: (i: number) => ReactNode;
+}
+
+function SelfCardGrid({ handCount, holes = [], cardSize, labelSize, renderSlot }: SelfCardGridProps) {
+  const orderedIndices = [2, 3, 0, 1].filter((i) => i < Math.max(handCount, 4));
+  const extras: number[] = [];
+  for (let i = 4; i < handCount; i++) extras.push(i);
+  const slot = (i: number) => (
+    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      {holes.includes(i) ? <EmptySlot size={cardSize} /> : renderSlot(i)}
+      <div style={{ fontSize: labelSize, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
+        #{i + 1}
+      </div>
+    </div>
+  );
+  const gap = cardSize === 'sm' ? 8 : cardSize === 'md' ? 12 : 16;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap }}>
+        {orderedIndices.map(slot)}
+      </div>
+      {extras.length > 0 && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: 8,
+            paddingLeft: 8,
+            borderLeft: '1.5px dashed var(--crimson)',
+          }}
+        >
+          {extras.map(slot)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmptySlot({ size }: { size: 'sm' | 'md' | 'lg' }) {
   const dims = size === 'sm' ? { w: 48, h: 68 } : size === 'lg' ? { w: 96, h: 138 } : { w: 68, h: 96 };
   return (
@@ -480,10 +523,39 @@ function EmptySlot({ size }: { size: 'sm' | 'md' | 'lg' }) {
 }
 
 function OpponentHand({ count, holes = [] }: { count: number; holes?: number[] }) {
+  const slotCount = Math.max(count, 4);
+  const orderedIndices = [2, 3, 0, 1].filter((i) => i < slotCount);
+  const extras: number[] = [];
+  for (let i = 4; i < count; i++) extras.push(i);
+  const slot = (i: number) => (
+    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      {holes.includes(i) || i >= count ? (
+        <EmptySlot size="sm" />
+      ) : (
+        <PlayingCard faceDown size="sm" />
+      )}
+      <div style={{ fontSize: 9, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
+        #{i + 1}
+      </div>
+    </div>
+  );
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-      {Array.from({ length: count }).map((_, i) =>
-        holes.includes(i) ? <EmptySlot key={i} size="sm" /> : <PlayingCard key={i} faceDown size="sm" />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        {orderedIndices.map(slot)}
+      </div>
+      {extras.length > 0 && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: 4,
+            paddingLeft: 6,
+            borderLeft: '1px dashed var(--crimson)',
+          }}
+        >
+          {extras.map(slot)}
+        </div>
       )}
     </div>
   );
@@ -703,6 +775,7 @@ export function PowerScreen() {
     powerSelfPeek,
     powerOpponentPeek,
     powerSwap,
+    powerSkip,
     lastReveal,
     clearReveal,
   } = useGame();
@@ -820,49 +893,34 @@ export function PowerScreen() {
             >
               Vos cartes
             </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              {Array.from({ length: me.handCount }).map((_, i) => {
-                if (me.holes?.includes(i)) {
-                  return (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                      <EmptySlot size="lg" />
-                      <div style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>#{i + 1}</div>
-                    </div>
-                  );
-                }
+            <SelfCardGrid
+              handCount={me.handCount}
+              holes={me.holes}
+              cardSize="lg"
+              labelSize={11}
+              renderSlot={(i) => {
                 const isChosen = chosenIdx === i;
                 const card = lastReveal && isChosen ? lastReveal.card : null;
                 return (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      if (isResolved || chosenIdx !== null) return;
-                      setChosenIdx(i);
-                      tryAction(() => powerSelfPeek(i));
-                    }}
-                    style={{
-                      cursor: !isResolved && chosenIdx === null ? 'pointer' : 'default',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <PlayingCard
-                      rank={card?.rank}
-                      suit={card?.suit}
-                      flipped={isChosen && !!card}
-                      faceDown={!card}
-                      size="lg"
-                      highlight={isChosen ? 'selected' : null}
-                    />
-                    <div style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
-                      #{i + 1}
-                    </div>
-                  </div>
+                  <PlayingCard
+                    rank={card?.rank}
+                    suit={card?.suit}
+                    flipped={isChosen && !!card}
+                    faceDown={!card}
+                    size="lg"
+                    highlight={isChosen ? 'selected' : null}
+                    onClick={
+                      !isResolved && chosenIdx === null
+                        ? () => {
+                            setChosenIdx(i);
+                            tryAction(() => powerSelfPeek(i));
+                          }
+                        : null
+                    }
+                  />
                 );
-              })}
-            </div>
+              }}
+            />
           </div>
         )}
 
@@ -899,6 +957,21 @@ export function PowerScreen() {
               tryAction(() => powerSwap(selfIdx, targetId, targetIdx));
             }}
           />
+        )}
+
+        {!isResolved && (
+          <div style={{ marginTop: 24 }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsResolved(true);
+                tryAction(powerSkip);
+              }}
+            >
+              Passer le pouvoir
+            </Button>
+          </div>
         )}
 
         <div style={{ marginTop: 32, fontSize: 14, color: 'var(--ink-2)', height: 24 }}>
@@ -1004,28 +1077,27 @@ function SwapPicker({ me, opponents, disabled, onSwap }: SwapPickerProps) {
       </div>
       {step === 'self' ? (
         <div className="panel" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'var(--gold)' }}>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {Array.from({ length: me.handCount }).map((_, i) => {
-              if (me.holes?.includes(i)) return <EmptySlot key={i} size="md" />;
-              return (
-                <div
-                  key={i}
-                  onClick={() => {
-                    if (disabled) return;
-                    setSelfIdx(i);
-                    setStep('opponent');
-                  }}
-                  style={{ cursor: disabled ? 'default' : 'pointer' }}
-                >
-                  <PlayingCard
-                    faceDown
-                    size="md"
-                    highlight={selfIdx === i ? 'selected' : null}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <SelfCardGrid
+            handCount={me.handCount}
+            holes={me.holes}
+            cardSize="md"
+            labelSize={10}
+            renderSlot={(i) => (
+              <PlayingCard
+                faceDown
+                size="md"
+                highlight={selfIdx === i ? 'selected' : null}
+                onClick={
+                  disabled
+                    ? null
+                    : () => {
+                        setSelfIdx(i);
+                        setStep('opponent');
+                      }
+                }
+              />
+            )}
+          />
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 16 }}>
@@ -1041,23 +1113,23 @@ function SwapPicker({ me, opponents, disabled, onSwap }: SwapPickerProps) {
               >
                 {opp.pseudo}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {Array.from({ length: opp.handCount }).map((_, i) => {
-                  if (opp.holes?.includes(i)) return <EmptySlot key={i} size="sm" />;
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => {
-                        if (disabled || selfIdx === null) return;
-                        onSwap(selfIdx, opp.id, i);
-                      }}
-                      style={{ cursor: disabled ? 'default' : 'pointer' }}
-                    >
-                      <PlayingCard faceDown size="sm" />
-                    </div>
-                  );
-                })}
-              </div>
+              <SelfCardGrid
+                handCount={opp.handCount}
+                holes={opp.holes}
+                cardSize="sm"
+                labelSize={10}
+                renderSlot={(i) => (
+                  <PlayingCard
+                    faceDown
+                    size="sm"
+                    onClick={
+                      disabled || selfIdx === null
+                        ? null
+                        : () => onSwap(selfIdx, opp.id, i)
+                    }
+                  />
+                )}
+              />
             </div>
           ))}
         </div>

@@ -188,6 +188,16 @@ export function setupSocketServer(io: Server): void {
       }
     );
 
+    socket.on('game:power:skip', (_: unknown, ack?: AckFn) => {
+      const room = currentRoom(socket);
+      if (!room) return ack?.({ ok: false, error: 'no_room' });
+      if (room.phase !== 'power') return ack?.({ ok: false, error: 'wrong_phase' });
+      if (!room.isCurrentTurn(user.id)) return ack?.({ ok: false, error: 'not_your_turn' });
+      room.pendingPower = null;
+      finishPower(io, room);
+      ack?.({ ok: true });
+    });
+
     socket.on('game:snap', (data: { idx?: number }, ack?: AckFn) => {
       const room = currentRoom(socket);
       if (!room) return ack?.({ ok: false, error: 'no_room' });
