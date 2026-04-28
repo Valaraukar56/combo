@@ -496,7 +496,7 @@ export class Room {
   /** Each player's view of their own hand (only knownByOwner cards revealed). */
   privateHand(playerId: string): PrivateHandPayload {
     const p = this.players.find((x) => x.id === playerId);
-    if (!p) return { cards: [] };
+    if (!p) return { cards: [], holes: [] };
     return {
       cards: p.hand.map((c, i) => (c && p.knownByOwner[i] ? c : null)),
       holes: p.hand.map((c, i) => (c ? -1 : i)).filter((i) => i >= 0),
