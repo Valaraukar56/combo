@@ -13,6 +13,8 @@ interface SocketData {
 
 type Sock = Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>;
 
+const POWER_REVEAL_HOLD_MS = 5000;
+
 export function setupSocketServer(io: Server): void {
   // Auth handshake — every socket must present a valid JWT.
   io.use((socket, next) => {
@@ -144,7 +146,8 @@ export function setupSocketServer(io: Server): void {
           card: result.card,
           source: 'self',
         });
-        finishPower(io, room);
+        // Hold the reveal on screen so the player can memorize the card.
+        setTimeout(() => finishPower(io, room), POWER_REVEAL_HOLD_MS);
         ack?.({ ok: true });
       }
     );
@@ -166,7 +169,7 @@ export function setupSocketServer(io: Server): void {
           card: result.card,
           source: 'opponent',
         });
-        finishPower(io, room);
+        setTimeout(() => finishPower(io, room), POWER_REVEAL_HOLD_MS);
         ack?.({ ok: true });
       }
     );

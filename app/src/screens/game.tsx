@@ -794,7 +794,7 @@ export function PowerScreen() {
   useEffect(() => {
     if (!lastReveal) return;
     setIsResolved(true);
-    const t = setTimeout(() => clearReveal(), 2400);
+    const t = setTimeout(() => clearReveal(), 5000);
     return () => clearTimeout(t);
   }, [lastReveal, clearReveal]);
 
