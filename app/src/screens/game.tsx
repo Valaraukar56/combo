@@ -788,7 +788,8 @@ export function PowerScreen() {
     setChosenIdx(null);
     setChosenTargetId(null);
     setIsResolved(false);
-  }, [pendingPower?.type]);
+    clearReveal();
+  }, [pendingPower?.type, clearReveal]);
 
   useEffect(() => {
     if (!lastReveal) return;
