@@ -96,7 +96,7 @@ export function setupSocketServer(io: Server): void {
       const result = room.draw(user.id, data?.source === 'discard' ? 'discard' : 'deck');
       if (!result.ok) return ack?.({ ok: false, error: result.error });
       socket.emit('game:drawn', { card: result.card, fromDiscard: data?.source === 'discard' });
-      io.to(roomChannel(room.code)).emit('game:state', room.publicState());
+      broadcastRoomState(io, room);
       ack?.({ ok: true });
     });
 
@@ -125,7 +125,7 @@ export function setupSocketServer(io: Server): void {
       });
       if (result.powerType) {
         // Active player picks a target via game:power:*
-        io.to(roomChannel(room.code)).emit('game:state', room.publicState());
+        broadcastRoomState(io, room);
       } else {
         openSnapAndAdvance(io, room);
       }
@@ -302,7 +302,6 @@ function startRound(io: Server, room: Room): void {
 }
 
 function openSnapAndAdvance(io: Server, room: Room): void {
-  io.to(roomChannel(room.code)).emit('game:state', room.publicState());
   sendPrivateHandsAll(io, room);
   room.openSnapWindow(() => {
     advanceTurn(io, room);
