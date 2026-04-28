@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
-import { authRouter } from './auth.js';
+import { authRouter, ensureAdmin } from './auth.js';
 import { config } from './config.js';
 import './db.js'; // initializes schema
 import { setupSocketServer } from './socket.js';
@@ -49,4 +49,5 @@ setupSocketServer(io);
 
 httpServer.listen(config.port, () => {
   console.log(`[combo-server] listening on :${config.port} (${config.nodeEnv})`);
+  void ensureAdmin();
 });

@@ -10,6 +10,7 @@ export interface Card {
 export interface User {
   id: string;
   pseudo: string;
+  isAdmin?: boolean;
 }
 
 export interface Room {

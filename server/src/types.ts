@@ -9,6 +9,7 @@ export interface Card {
 export interface AuthUser {
   id: string;
   pseudo: string;
+  isAdmin?: boolean;
 }
 
 export interface PublicPlayer {

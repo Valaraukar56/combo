@@ -97,7 +97,7 @@ export function AppShell() {
       <>
         {inner}
         {showSnap && <SnapResolutionScreen />}
-        <DevNav onJump={setPage} />
+        {user.isAdmin && <DevNav onJump={setPage} />}
       </>
     );
   }
@@ -123,7 +123,7 @@ export function AppShell() {
   return (
     <>
       {metaInner}
-      <DevNav onJump={setPage} />
+      {user.isAdmin && <DevNav onJump={setPage} />}
     </>
   );
 }

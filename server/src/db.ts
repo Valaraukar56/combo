@@ -15,7 +15,8 @@ db.exec(`
     id TEXT PRIMARY KEY,
     pseudo TEXT NOT NULL UNIQUE COLLATE NOCASE,
     password_hash TEXT NOT NULL,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS user_stats (
@@ -52,11 +53,22 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_game_players_user ON game_players(user_id);
 `);
 
+// Migrate existing DBs that pre-date the is_admin column.
+{
+  const cols = db
+    .prepare("PRAGMA table_info('users')")
+    .all() as { name: string }[];
+  if (!cols.some((c) => c.name === 'is_admin')) {
+    db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+  }
+}
+
 export interface UserRow {
   id: string;
   pseudo: string;
   password_hash: string;
   created_at: number;
+  is_admin: number;
 }
 
 export interface StatsRow {
@@ -96,6 +108,7 @@ export const userQueries = {
   insertStats: db.prepare('INSERT INTO user_stats (user_id) VALUES (?)'),
   byId: db.prepare('SELECT * FROM users WHERE id = ?'),
   byPseudo: db.prepare('SELECT * FROM users WHERE pseudo = ? COLLATE NOCASE'),
+  setAdmin: db.prepare('UPDATE users SET is_admin = ? WHERE id = ?'),
 };
 
 export const statsQueries = {
