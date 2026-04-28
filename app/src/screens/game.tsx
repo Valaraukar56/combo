@@ -203,14 +203,14 @@ export function GameTableScreen() {
         onBack={() => leaveRoom()}
       />
 
-      {/* Top opponent */}
+      {/* Top opponent — vertical 2x2 placed just to the right of the discard pile */}
       {opponentTop && (
         <div
           style={{
             position: 'absolute',
-            top: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
+            top: '50%',
+            left: 'calc(50% + 280px)',
+            transform: 'translateY(-50%)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -223,7 +223,6 @@ export function GameTableScreen() {
               count={opponentTop.handCount}
               holes={opponentTop.holes}
               size="lg"
-              layout="1x4"
             />
           </div>
         </div>
