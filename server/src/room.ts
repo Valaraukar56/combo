@@ -279,7 +279,8 @@ export class Room {
     if (idx < 0 || idx >= p.hand.length) return { ok: false, error: 'invalid_idx' };
     const c = p.hand[idx];
     if (!c) return { ok: false, error: 'empty_slot' };
-    p.knownByOwner[idx] = true;
+    // The card is revealed only via game:reveal during the peek window — it
+    // is NOT marked as known so the player has to memorize it themselves.
     return { ok: true, card: c };
   }
 
