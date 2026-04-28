@@ -269,15 +269,26 @@ export function GameProvider({ children }: { children: ReactNode }) {
       await emit('room:start');
     },
     draw: async (source) => {
-      await emit('game:draw', { source });
+      try {
+        await emit('game:draw', { source });
+      } catch (err) {
+        setDrawnCard(null);
+        throw err;
+      }
     },
     swap: async (idx) => {
-      await emit('game:swap', { idx });
-      setDrawnCard(null);
+      try {
+        await emit('game:swap', { idx });
+      } finally {
+        setDrawnCard(null);
+      }
     },
     discard: async () => {
-      await emit('game:discard');
-      setDrawnCard(null);
+      try {
+        await emit('game:discard');
+      } finally {
+        setDrawnCard(null);
+      }
     },
     snap: async (idx) => {
       const r = await emit<{ ok: true; success: boolean }>('game:snap', { idx });
