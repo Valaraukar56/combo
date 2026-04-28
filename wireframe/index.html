@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Combo — Wireframes</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: #0d0d14;
+  font-family: 'Caveat', cursive;
+  color: #e8e0d0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+:root {
+  --ink: #e8e0d0; --ink2: #a09880; --bg: #111118;
+  --border: rgba(232,224,208,0.25); --accent: #c8a96e;
+  --accent2: #7e6b8f; --red: #c0504a; --green: #5a9e6f;
+}
+
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 260px; flex-shrink: 0;
+  border-right: 1px solid rgba(232,224,208,0.12);
+  background: #0a0a10;
+  padding: 28px 0 24px;
+  position: sticky; top: 0;
+  height: 100vh; overflow-y: auto;
+}
+.sidebar h1 {
+  font-size: 38px; color: var(--accent);
+  padding: 0 24px; margin-bottom: 2px;
+  letter-spacing: 2px; font-weight: 700;
+}
+.sidebar .subtitle {
+  font-size: 16px; color: var(--ink2);
+  padding: 0 24px; margin-bottom: 28px;
+}
+.nav-link {
+  display: block; padding: 9px 24px;
+  font-size: 19px; font-family: 'Caveat', cursive;
+  color: var(--ink2); text-decoration: none; cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.nav-link:hover { color: var(--ink); background: rgba(255,255,255,0.03); }
+.nav-link.active {
+  color: var(--accent); border-left-color: var(--accent);
+  background: rgba(200,169,110,0.08);
+}
+
+.main { flex: 1; padding: 36px 48px 80px; min-width: 0; }
+.section { margin-bottom: 72px; scroll-margin-top: 16px; }
+.section-header {
+  font-size: 32px; color: var(--accent);
+  margin-bottom: 20px; font-weight: 600;
+}
+.artboards {
+  display: flex; flex-wrap: wrap; gap: 32px;
+  align-items: flex-start;
+}
+.artboard {
+  background: #15151c;
+  border: 1px solid rgba(232,224,208,0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  display: flex; flex-direction: column;
+}
+.artboard-label {
+  font-size: 14px; color: var(--ink);
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(232,224,208,0.1);
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px;
+}
+.artboard-label .dim {
+  color: rgba(232,224,208,0.4);
+  font-size: 12px; font-family: ui-monospace, monospace;
+}
+.artboard-canvas {
+  background: var(--bg);
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.artboard *::-webkit-scrollbar { display: none; }
+.artboard * { scrollbar-width: none; }
+
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(232,224,208,0.12); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+/* ── Primitives ── */
+const T = ({ size = 16, color = 'var(--ink)', bold, children, style }) =>
+<span style={{ fontSize: size, color, fontWeight: bold ? 700 : 400, fontFamily: "'Caveat',cursive", ...style }}>{children}</span>;
+
+const HR = ({ style }) => <div style={{ width: '100%', height: 1, background: 'rgba(232,224,208,0.18)', ...style }} />;
+
+const Box = ({ w, h, label, style, children, dashed, dark, accent, red }) =>
+<div style={{
+  width: w, height: h,
+  background: dark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.04)',
+  borderRadius: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+  position: 'relative', flexShrink: 0,
+  margin: "0px",
+  borderWidth: dashed ? "2px" : "2px 2px 5px",
+  borderStyle: dashed ? "dashed" : "solid",
+  borderColor: dashed ? "rgba(232,224,208,0.3)" : (accent ? "var(--accent)" : red ? "var(--red)" : "rgba(232, 224, 208, 0.45)"),
+  ...style, padding: "16px"
+}}>
+    {label && <span style={{ fontSize: 13, color: 'var(--ink2)', textAlign: 'center', padding: '0 4px', fontFamily: "'Caveat',cursive" }}>{label}</span>}
+    {children}
+  </div>;
+
+const Btn = ({ children, w = 120, h = 36, accent, ghost, red, style }) =>
+<div style={{
+  width: w, height: h,
+  border: accent ? '2px solid var(--accent)' : ghost ? '2px dashed rgba(232,224,208,0.4)' : red ? '2px solid var(--red)' : '2px solid rgba(232,224,208,0.5)',
+  background: accent ? 'rgba(200,169,110,0.18)' : 'transparent',
+  borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, ...style
+}}>
+    <T size={14} color={accent ? 'var(--accent)' : red ? 'var(--red)' : 'var(--ink)'}>{children}</T>
+  </div>;
+
+const Input = ({ placeholder, w = 200, h = 34 }) =>
+<div style={{ width: w, height: h, border: '2px solid rgba(232,224,208,0.3)', background: 'rgba(0,0,0,0.3)', borderRadius: 3, display: 'flex', alignItems: 'center', paddingLeft: 8 }}>
+    <T size={13} color='var(--ink2)'>{placeholder}</T>
+  </div>;
+
+const Card = ({ face, label, small, red: isRed, style }) => {
+  const w = small ? 42 : 56, h = small ? 60 : 80;
+  return (
+    <div style={{ width: w, height: h, background: face ? '#f0ead8' : '#1a2540', border: face ? '1.5px solid rgba(232,224,208,0.6)' : '1.5px solid rgba(232,224,208,0.3)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, ...style }}>
+      {face ? <T size={small ? 11 : 15} color={isRed ? '#c0504a' : '#1a1a2e'} bold>{label}</T> :
+      <T size={small ? 9 : 12} color='rgba(232,224,208,0.4)'>?</T>}
+    </div>);
+
+};
+
+const SectionLabel = ({ children }) =>
+<div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--accent)', fontFamily: "'Caveat',cursive", marginBottom: 4 }}>{children}</div>;
+
+const Screen = ({ children }) =>
+<div style={{ width: '100%', height: '100%', background: '#111118', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-evenly', padding: '12px 16px', boxSizing: 'border-box' }}>
+    {children}
+  </div>;
+
+
+/* ══════════════════════════════════════════
+   01 — ACCUEIL
+══════════════════════════════════════════ */
+const HomeA = () =>
+<Screen>
+    <SectionLabel>Variante A — Centré</SectionLabel>
+    <T size={42} bold color='var(--accent)'>COMBO</T>
+    <T size={13} color='var(--ink2)'>Le jeu de cartes</T>
+    <Box w={180} h={90} dashed label="illus. cartes / ambiance" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+      <Btn w={180} h={40} accent>Jouer en ligne</Btn>
+      <Btn w={180} h={40}>Solo vs IA</Btn>
+      <Btn w={180} h={40} ghost>Classement</Btn>
+    </div>
+    <div style={{ display: 'flex', gap: 16 }}>
+      <T size={12} color='var(--ink2)'>Connexion</T>
+      <T size={12} color='var(--ink2)'>Règles</T>
+      <T size={12} color='var(--ink2)'>Paramètres</T>
+    </div>
+  </Screen>;
+
+
+const HomeB = () =>
+<Screen>
+    <SectionLabel>Variante B — Split hero</SectionLabel>
+    <div style={{ display: 'flex', width: '100%', gap: 12, alignItems: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <T size={40} bold color='var(--accent)'>COMBO</T>
+        <T size={13} color='var(--ink2)'>Mémorisez. Échangez. Gagnez.</T>
+        <Btn w={160} h={38} accent>▶ Jouer maintenant</Btn>
+        <Btn w={160} h={38} ghost>Se connecter</Btn>
+      </div>
+      <Box w={180} h={260} dark dashed label="aperçu table de jeu" />
+    </div>
+    <HR />
+    <div style={{ display: 'flex', gap: 16 }}>
+      <T size={12} color='var(--ink2)'>Solo vs IA</T>
+      <T size={12} color='var(--ink2)'>Multijoueur</T>
+      <T size={12} color='var(--ink2)'>Classement</T>
+      <T size={12} color='var(--ink2)'>Règles</T>
+    </div>
+  </Screen>;
+
+
+const HomeC = () =>
+<Screen>
+    <SectionLabel>Variante C — Lobby rapide</SectionLabel>
+    <T size={36} bold color='var(--accent)'>COMBO</T>
+    <div style={{ display: 'flex', gap: 0, border: '2px solid rgba(232,224,208,0.3)', borderRadius: 4 }}>
+      {['Solo', 'En ligne'].map((m, i) =>
+    <div key={m} style={{ padding: '6px 18px', background: i === 0 ? 'rgba(200,169,110,0.22)' : 'transparent', borderRight: i === 0 ? '2px solid rgba(232,224,208,0.3)' : 'none' }}>
+          <T size={14} color={i === 0 ? 'var(--accent)' : 'var(--ink2)'}>{m}</T>
+        </div>
+    )}
+    </div>
+    <Box w={280} h={130} dark style={{ padding: 12, flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
+      <T size={12} color='var(--ink2)'>Code de partie</T>
+      <Input placeholder="Ex: XKZT4" w={200} />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Btn w={120} h={32} accent>Rejoindre</Btn>
+        <Btn w={120} h={32} ghost>Créer</Btn>
+      </div>
+    </Box>
+    <div style={{ display: 'flex', gap: 14 }}>
+      <T size={12} color='var(--ink2)'>Classement</T>
+      <T size={12} color='var(--ink2)'>Mon profil</T>
+      <T size={12} color='var(--ink2)'>Règles</T>
+    </div>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   02 — AUTH
+══════════════════════════════════════════ */
+const AuthA = () =>
+<Screen>
+    <SectionLabel>Variante A — Modal centré</SectionLabel>
+    <Box w={310} h={400} dark style={{ padding: 20, flexDirection: 'column', justifyContent: 'flex-start', gap: 10 }}>
+      <T size={22} bold>Connexion</T>
+      <HR />
+      <T size={12} color='var(--ink2)'>Pseudo</T>
+      <Input placeholder="votre_pseudo" w={240} />
+      <T size={12} color='var(--ink2)'>Mot de passe</T>
+      <Input placeholder="••••••••" w={240} />
+      <T size={11} color='var(--accent)'>Mot de passe oublié ?</T>
+      <Btn w={240} h={38} accent>Se connecter</Btn>
+      <HR />
+      <T size={12} color='var(--ink2)'>Pas encore de compte ?</T>
+      <Btn w={240} h={34} ghost>Créer un compte</Btn>
+    </Box>
+  </Screen>;
+
+
+const AuthB = () =>
+<Screen>
+    <SectionLabel>Variante B — Split login / register</SectionLabel>
+    <div style={{ display: 'flex', gap: 10 }}>
+      <Box w={190} h={280} dark style={{ padding: 14, flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
+        <T size={18} bold>Connexion</T>
+        <HR />
+        <T size={12} color='var(--ink2)'>Pseudo</T>
+        <Input placeholder="pseudo" w={160} />
+        <T size={12} color='var(--ink2)'>Mot de passe</T>
+        <Input placeholder="••••••" w={160} />
+        <Btn w={160} h={34} accent style={{ marginTop: 4 }}>Entrer</Btn>
+      </Box>
+      <Box w={190} h={280} dark style={{ padding: 14, flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
+        <T size={18} bold>Créer un compte</T>
+        <HR />
+        <T size={12} color='var(--ink2)'>Pseudo</T>
+        <Input placeholder="pseudo" w={160} />
+        <T size={12} color='var(--ink2)'>Email</T>
+        <Input placeholder="email@..." w={160} />
+        <T size={12} color='var(--ink2)'>Mot de passe</T>
+        <Input placeholder="••••••" w={160} />
+        <Btn w={160} h={34} ghost style={{ marginTop: 4 }}>S'inscrire</Btn>
+      </Box>
+    </div>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   03 — LOBBY
+══════════════════════════════════════════ */
+const PlayerSlot = ({ name, ready, empty }) =>
+<div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1.5px solid ' + (empty ? 'rgba(232,224,208,0.15)' : 'rgba(232,224,208,0.35)'), borderRadius: 3, width: 180, background: empty ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.05)' }}>
+    <T size={13} color={empty ? 'var(--ink2)' : 'var(--ink)'}>{empty ? '— vide —' : name}</T>
+    {!empty && <div style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: ready ? 'var(--green)' : 'rgba(232,224,208,0.3)' }} />}
+  </div>;
+
+
+const LobbyA = () =>
+<Screen>
+    <SectionLabel>Variante A — Salle d'attente</SectionLabel>
+    <Box w={320} h={400} dark style={{ padding: 16, flexDirection: 'column', justifyContent: 'flex-start', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+        <T size={18} bold>Partie de Jean</T>
+        <T size={13} color='var(--accent)'>CODE: KZ7T</T>
+      </div>
+      <HR />
+      <T size={12} color='var(--ink2)'>Joueurs (2/4)</T>
+      <PlayerSlot name="Jean" ready />
+      <PlayerSlot name="Marie" ready={false} />
+      <PlayerSlot empty /><PlayerSlot empty />
+      <HR style={{ marginTop: 20 }} />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <T size={12} color='var(--ink2)'>Nb joueurs:</T>
+        {[2, 3, 4].map((n) =>
+      <div key={n} style={{ width: 28, height: 24, border: '1.5px solid ' + (n === 2 ? 'var(--accent)' : 'rgba(232,224,208,0.3)'), display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2 }}>
+            <T size={12} color={n === 2 ? 'var(--accent)' : 'var(--ink2)'}>{n}</T>
+          </div>
+      )}
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 20, marginBottom: 16 }}>
+        <Btn w={140} h={34} accent>Lancer la partie</Btn>
+        <Btn w={100} h={34} ghost>Quitter</Btn>
+      </div>
+    </Box>
+  </Screen>;
+
+
+const LobbyB = () =>
+<Screen>
+    <SectionLabel>Variante B — Créer ou rejoindre par code</SectionLabel>
+    <T size={11} color='var(--ink2)' style={{ textAlign: 'center', maxWidth: 380 }}>
+      Sur invitation uniquement — partagez ou saisissez un code à 6 caractères
+    </T>
+    <div style={{ display: 'flex', gap: 14, alignItems: 'stretch' }}>
+      <Box w={210} h={300} dark style={{ padding: 14, flexDirection: 'column', justifyContent: 'flex-start', gap: 10 }}>
+        <T size={15} bold color='var(--accent)'>Créer une partie</T>
+        <HR />
+        <T size={11} color='var(--ink2)'>Nom de la partie</T>
+        <Input placeholder="Ma partie" w={182} h={28} />
+        <T size={11} color='var(--ink2)'>Joueurs max</T>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[2, 3, 4].map((n, i) =>
+        <div key={n} style={{ width: 38, height: 28, border: '1.5px solid ' + (i === 2 ? 'var(--accent)' : 'rgba(232,224,208,0.3)'), display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2 }}>
+            <T size={12} color={i === 2 ? 'var(--accent)' : 'var(--ink)'}>{n}</T>
+          </div>)}
+        </div>
+        <T size={11} color='var(--ink2)'>Manches</T>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[1, 3, 5].map((n, i) =>
+        <div key={n} style={{ width: 38, height: 28, border: '1.5px solid ' + (i === 1 ? 'var(--accent)' : 'rgba(232,224,208,0.3)'), display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2 }}>
+            <T size={12} color={i === 1 ? 'var(--accent)' : 'var(--ink)'}>{n}</T>
+          </div>)}
+        </div>
+        <Btn w={182} h={34} accent style={{ marginTop: 'auto' }}>Créer ▶</Btn>
+      </Box>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <div style={{ width: 1, flex: 1, background: 'rgba(232,224,208,0.15)' }} />
+        <T size={10} color='var(--ink2)'>OU</T>
+        <div style={{ width: 1, flex: 1, background: 'rgba(232,224,208,0.15)' }} />
+      </div>
+
+      <Box w={210} h={300} dark style={{ padding: 14, flexDirection: 'column', justifyContent: 'flex-start', gap: 10 }}>
+        <T size={15} bold color='var(--accent2)'>Rejoindre par code</T>
+        <HR />
+        <T size={11} color='var(--ink2)'>Code de la partie</T>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+          {['A', '7', 'X', '3', 'K', '9'].map((c, i) =>
+        <div key={i} style={{ width: 26, height: 34, border: '1.5px solid var(--accent2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2, background: 'rgba(122,162,156,0.05)' }}>
+            <T size={16} bold>{c}</T>
+          </div>)}
+        </div>
+        <T size={10} color='var(--ink2)' style={{ textAlign: 'center' }}>Reçu par invitation</T>
+        <HR />
+        <T size={11} color='var(--ink2)'>Pseudo affiché</T>
+        <Input placeholder="Jean" w={182} h={28} />
+        <Btn w={182} h={34} accent style={{ marginTop: 'auto' }}>Rejoindre ▶</Btn>
+      </Box>
+    </div>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   04 — MÉMORISATION
+══════════════════════════════════════════ */
+const GameMemorize = () =>
+<Screen>
+    <SectionLabel>Phase de mémorisation — début de partie</SectionLabel>
+    <div style={{ width: 64, height: 64, border: '2px solid var(--accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <T size={28} bold color='var(--accent)'>20</T>
+    </div>
+    <div style={{ padding: '8px 16px', border: '1.5px solid rgba(200,169,110,0.4)', borderRadius: 3, background: 'rgba(200,169,110,0.08)', textAlign: 'center' }}>
+      <T size={13} color='var(--accent)'>Regardez bien vos cartes 1 et 2 !</T><br />
+      <T size={11} color='var(--ink2)'>Vous ne pourrez plus les voir ensuite</T>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <T size={12} color='var(--ink2)'>Vos cartes :</T>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card /><T size={10} color='var(--ink2)'>3 — cachée</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card /><T size={10} color='var(--ink2)'>4 — cachée</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card face label="A♠" style={{ boxShadow: '0 0 0 2px var(--accent)' }} />
+          <T size={10} color='var(--accent)'>1 — mémorisez</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card face label="3♥" isRed style={{ boxShadow: '0 0 0 2px var(--accent)' }} />
+          <T size={10} color='var(--accent)'>2 — mémorisez</T>
+        </div>
+      </div>
+    </div>
+    <div style={{ width: 240, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+      <div style={{ width: '100%', height: 6, background: 'rgba(232,224,208,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ width: '75%', height: '100%', background: 'var(--accent)', borderRadius: 3 }} />
+      </div>
+    </div>
+    <div style={{ display: 'flex', gap: 10 }}>
+      {[{ n: 'Jean (vous)', ready: true }, { n: 'Marie', ready: true }, { n: 'Tom', ready: false }].map((p, i) =>
+    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', border: '1.5px solid ' + (p.ready ? 'var(--green)' : 'rgba(232,224,208,0.2)'), borderRadius: 2 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: p.ready ? 'var(--green)' : 'rgba(232,224,208,0.2)' }} />
+          <T size={11} color={p.ready ? 'var(--green)' : 'var(--ink2)'}>{p.n}</T>
+        </div>
+    )}
+    </div>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   04 — JEU 2 JOUEURS
+══════════════════════════════════════════ */
+const GameTable2P = () =>
+<Screen>
+    <SectionLabel>Jeu — 2 joueurs (face à face)</SectionLabel>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+      <T size={11} color='var(--ink2)'>Adversaire (Marie) — ? pts</T>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 10px' }}>
+        <Card /><Card /><Card /><Card />
+      </div>
+    </div>
+    <div style={{ display: 'flex', gap: 28, alignItems: 'center', padding: '8px 0', width: '100%', justifyContent: 'center', borderTop: "1px rgba(232, 224, 208, 0.1)", borderBottom: "1px rgba(232, 224, 208, 0.1)", borderStyle: "none" }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <Card /><T size={11} color='var(--ink2)'>Pioche</T>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <Card face label="7♠" /><T size={11} color='var(--ink2)'>Défausse</T>
+      </div>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card /><T size={10} color='var(--ink2)'>3 — inconnue</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card /><T size={10} color='var(--ink2)'>4 — inconnue</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card style={{ border: '2px solid var(--green)' }} /><T size={10} color='var(--green)'>1 — mémorisée</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card style={{ border: '2px solid var(--green)' }} /><T size={10} color='var(--green)'>2 — mémorisée</T>
+        </div>
+      </div>
+      <T size={11} color='var(--ink2)'>Vous (Jean)</T>
+    </div>
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', maxWidth: '100%' }}>
+      <Btn w={110} h={30} accent>Prendre pioche</Btn>
+      <Btn w={120} h={30} ghost>Prendre défausse</Btn>
+      <Btn w={90} h={30} red>COMBO !</Btn>
+    </div>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   04 — JEU 4 JOUEURS
+══════════════════════════════════════════ */
+const GameTable4P = () =>
+<Screen>
+    <SectionLabel>Jeu — 4 joueurs (autour de la table)</SectionLabel>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <T size={10} color='var(--ink2)'>Player 3</T>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 6px' }}>
+        <Card small /><Card small /><Card small /><Card small />
+      </div>
+    </div>
+    <div style={{ display: 'flex', gap: 48, alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <T size={10} color='var(--ink2)'>Player 4</T>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, transform: 'rotate(90deg)', margin: '16px 4px' }}>
+          <div style={{ display: 'flex', gap: 4 }}><Card small /><Card small /></div>
+          <div style={{ display: 'flex', gap: 4 }}><Card small /><Card small /></div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '6px 14px', border: '1px solid rgba(232,224,208,0.15)', borderRadius: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card small /><T size={10} color='var(--ink2)'>Pioche</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card small face label="Q♥" isRed /><T size={10} color='var(--ink2)'>Défausse</T>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <T size={10} color='var(--ink2)'>Player 2</T>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, transform: 'rotate(-90deg)', margin: '16px 4px' }}>
+          <div style={{ display: 'flex', gap: 4 }}><Card small /><Card small /></div>
+          <div style={{ display: 'flex', gap: 4 }}><Card small /><Card small /></div>
+        </div>
+      </div>
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card small /><T size={9} color='var(--ink2)'>3</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card small /><T size={9} color='var(--ink2)'>4</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card small style={{ border: '2px solid var(--green)' }} /><T size={9} color='var(--green)'>1★</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card small style={{ border: '2px solid var(--green)' }} /><T size={9} color='var(--green)'>2★</T>
+        </div>
+      </div>
+      <T size={11} color='var(--accent)'>Vous (Jean) ← votre tour</T>
+    </div>
+    <div style={{ display: 'flex', gap: 6 }}>
+      <Btn w={90} h={26} accent>Pioche</Btn>
+      <Btn w={90} h={26} ghost>Défausse</Btn>
+      <Btn w={70} h={26} red>COMBO</Btn>
+    </div>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   04 — SOLO vs IA
+══════════════════════════════════════════ */
+const GameSolo = () =>
+<Screen>
+    <SectionLabel>Jeu — Solo vs IA</SectionLabel>
+    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', justifyContent: 'center', width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+          <T size={11} color='var(--accent2)'>🤖 IA — Difficulté: Moyen</T>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
+            <Card /><Card /><Card /><Card />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+            <Card /><T size={11} color='var(--ink2)'>Pioche</T>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+            <Card face label="5♣" /><T size={11} color='var(--ink2)'>Défausse</T>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Card /><T size={9} color='var(--ink2)'>3</T>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Card /><T size={9} color='var(--ink2)'>4</T>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Card style={{ border: '2px solid var(--green)' }} /><T size={9} color='var(--green)'>1★</T>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Card style={{ border: '2px solid var(--green)' }} /><T size={9} color='var(--green)'>2★</T>
+            </div>
+          </div>
+          <T size={11} color='var(--ink2)'>Vous</T>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Btn w={95} h={26} accent>Pioche</Btn>
+          <Btn w={95} h={26} ghost>Défausse</Btn>
+          <Btn w={72} h={26} red>COMBO</Btn>
+        </div>
+      </div>
+      <Box w={140} h={220} dark style={{ padding: 10, flexDirection: 'column', justifyContent: 'flex-start', gap: 6, flexShrink: 0 }}>
+        <T size={11} bold>Difficulté IA</T>
+        <HR />
+        {['Facile', 'Moyen', 'Difficile'].map((d, i) =>
+      <div key={d} style={{ padding: '3px 6px', border: '1.5px solid ' + (i === 1 ? 'var(--accent2)' : 'rgba(232,224,208,0.2)'), borderRadius: 2 }}>
+            <T size={11} color={i === 1 ? 'var(--accent2)' : 'var(--ink2)'}>{d}</T>
+          </div>
+      )}
+        <HR />
+        <T size={10} color='var(--ink2)'>Score actuel</T>
+        <T size={12} color='var(--ink)'>Vous: 4 pts</T>
+        <T size={12} color='var(--ink2)'>IA: ? pts</T>
+      </Box>
+    </div>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   04 — JOUEUR AVEC PÉNALITÉ (5+ CARTES)
+══════════════════════════════════════════ */
+const PlayerPenalty = () =>
+<Screen>
+    <SectionLabel>Joueur avec pénalité — Pose rapide ratée</SectionLabel>
+    <T size={11} color='var(--ink2)' style={{ textAlign: 'center', maxWidth: 460 }}>
+      Après une mauvaise pose rapide, une carte supplémentaire s'ajoute sur le côté (ici 6 cartes : 2 erreurs)
+    </T>
+
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <Card style={{ border: '2px solid var(--red)' }} />
+        <T size={10} color='var(--red)'>5 — pénalité</T>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card /><T size={10} color='var(--ink2)'>3 — inconnue</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card /><T size={10} color='var(--ink2)'>4 — inconnue</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card style={{ border: '2px solid var(--green)' }} />
+          <T size={10} color='var(--green)'>1 — mémorisée</T>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <Card style={{ border: '2px solid var(--green)' }} />
+          <T size={10} color='var(--green)'>2 — mémorisée</T>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <Card style={{ border: '2px solid var(--red)' }} />
+        <T size={10} color='var(--red)'>6 — pénalité</T>
+      </div>
+    </div>
+
+    <T size={11} color='var(--ink)'>Vous (Jean)</T>
+
+    <Box w={420} h={90} dark style={{ padding: 10, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: 4 }}>
+      <T size={11} bold color='var(--red)'>⚠ Comment se passe la pénalité ?</T>
+      <T size={10} color='var(--ink2)'>• Tentative de pose rapide avec une carte qui ne correspond pas</T>
+      <T size={10} color='var(--ink2)'>• La carte tentée revient en main + 1 carte supplémentaire piochée</T>
+      <T size={10} color='var(--ink2)'>• Les nouvelles cartes (5, 6…) sont ajoutées sur les côtés et restent inconnues</T>
+    </Box>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   05 — INTERACTIONS
+══════════════════════════════════════════ */
+const ActionSwap = () =>
+<Screen>
+    <SectionLabel>Interaction — Échanger une carte</SectionLabel>
+    <T size={14}>Vous avez pioché le <span style={{ color: 'var(--accent)' }}>9♣</span></T>
+    <T size={12} color='var(--ink2)'>Choisissez une carte à remplacer, ou défaussez</T>
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+        <Card face label="9♣" style={{ boxShadow: '0 0 0 2px var(--accent)' }} />
+        <T size={11} color='var(--accent)'>piochée</T>
+      </div>
+      <T size={18} color='var(--ink2)'>→</T>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px' }}>
+        {[{ p: 3, known: false }, { p: 4, known: false }, { p: 1, known: true }, { p: 2, known: true }].map((c, i) =>
+      <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+            <Card style={{ cursor: 'pointer', border: c.known ? '2px dashed var(--green)' : '2px dashed rgba(232,224,208,0.5)' }} />
+            <T size={10} color={c.known ? 'var(--green)' : 'var(--ink2)'}>pos {c.p}{c.known ? ' ★' : ''}</T>
+          </div>
+      )}
+      </div>
+    </div>
+    <Btn w={130} h={32} ghost>Défausser la carte</Btn>
+    <T size={11} color='var(--ink2)'>Cliquez sur l'une de vos cartes pour l'échanger</T>
+  </Screen>;
+
+
+const ActionPower = () =>
+<Screen>
+    <SectionLabel>Interaction — Pouvoir spécial (Dame rouge)</SectionLabel>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <Card face label="Q♥" isRed />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <T size={16} bold color='var(--red)'>Dame de Cœur !</T>
+        <T size={12} color='var(--ink2)'>Regardez la carte d'un adversaire</T>
+      </div>
+    </div>
+    <T size={12} color='var(--ink2)'>Choisissez un adversaire et une position (cliquez sur une carte) :</T>
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+      {[{ name: 'Marie', highlight: -1 }, { name: 'Tom', highlight: 0 }, { name: 'Sasha', highlight: -1 }].map((p) =>
+    <Box key={p.name} w={150} h={210} dark style={{ padding: 12, gap: 8, flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', borderWidth: '2px', borderStyle: 'solid', borderColor: 'rgba(232, 224, 208, 0.45)' }}>
+          <T size={12} bold>{p.name}</T>
+          <HR />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 6px', paddingBottom: 16 }}>
+            {[3, 4, 1, 2].map((n, i) =>
+        <div key={n} style={{ position: 'relative', cursor: 'pointer' }}>
+                <Card small style={{ border: i === p.highlight ? '2px solid var(--accent2)' : '1.5px solid rgba(232,224,208,0.3)', boxShadow: i === p.highlight ? '0 0 0 2px rgba(122,162,156,0.25)' : 'none' }} />
+                <T size={9} color={i === p.highlight ? 'var(--accent2)' : 'var(--ink2)'} style={{ position: 'absolute', bottom: -12, left: 0, right: 0, textAlign: 'center' }}>{n}</T>
+              </div>
+        )}
+          </div>
+        </Box>
+    )}
+    </div>
+    <T size={10} color='var(--accent2)' style={{ fontStyle: 'italic' }}>↑ Carte 3 de Tom sélectionnée</T>
+    <Btn w={120} h={30} ghost>Annuler</Btn>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   06 — FIN DE MANCHE
+══════════════════════════════════════════ */
+const EndRoundA = () =>
+<Screen>
+    <SectionLabel>Fin de manche — Révélation des scores</SectionLabel>
+    <Box w={460} h={460} dark style={{ padding: 16, flexDirection: 'column', justifyContent: 'flex-start', gap: 8, overflow: 'hidden' }}>
+      <T size={20} bold>Fin de la manche</T>
+      <T size={12} color='var(--ink2)'>Jean a dit COMBO — dernier tour joué</T>
+      <HR />
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 4, width: '100%' }}>
+      {[
+      { name: 'Jean (vous)', cards: ['A♠', '3♦', '7♣', '2♥'], pts: 12, winner: false },
+      { name: 'Marie', cards: ['K♠', '4♥', '6♦', 'J♣'], pts: 33, winner: false },
+      { name: 'Tom', cards: ['2♣', 'A♥', '3♠', '4♦'], pts: 9, winner: true },
+      { name: 'Sasha', cards: ['5♠', '8♥', 'Q♦', '3♣'], pts: 26, winner: false }].
+      map((p, i) =>
+      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', border: '1.5px solid ' + (p.winner ? 'var(--accent)' : 'rgba(232,224,208,0.15)'), borderRadius: 3, background: p.winner ? 'rgba(200,169,110,0.1)' : 'transparent', flexShrink: 0 }}>
+          {p.winner && <T size={11} color='var(--accent)'>★</T>}
+          <T size={13}>{p.name}</T>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', marginLeft: 'auto' }}>
+            {p.cards.map((c, j) => <Card key={j} small face label={c} isRed={c.includes('♥') || c.includes('♦')} />)}
+          </div>
+          <T size={14} color={p.winner ? 'var(--accent)' : 'var(--ink)'} bold style={{ marginLeft: 6 }}>{p.pts}pts</T>
+        </div>
+      )}
+      </div>
+      <HR />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+        <Btn w={130} h={34} accent>Manche suivante</Btn>
+        <Btn w={100} h={34} ghost>Quitter</Btn>
+      </div>
+    </Box>
+  </Screen>;
+
+
+const EndRoundB = () =>
+<Screen>
+    <SectionLabel>Fin de partie — Classement final</SectionLabel>
+    <Box w={320} h={360} dark style={{ padding: 16, flexDirection: 'column', justifyContent: 'flex-start', gap: 10 }}>
+      <div style={{ textAlign: 'center', width: '100%' }}>
+        <T size={22} bold color='var(--accent)'>Partie terminée !</T>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <T size={14} color='var(--accent)'>🏆 Vainqueur</T>
+        <T size={20} bold>Tom</T>
+        <T size={13} color='var(--ink2)'>Score total: 9 pts</T>
+      </div>
+      <HR />
+      {[{ rank: 1, name: 'Tom', total: 9 }, { rank: 2, name: 'Jean (vous)', total: 12 }, { rank: 3, name: 'Marie', total: 33 }].map((p) =>
+    <div key={p.rank} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 6px', background: p.rank === 2 ? 'rgba(200,169,110,0.08)' : 'transparent', borderRadius: 2 }}>
+          <T size={14} color={p.rank === 1 ? 'var(--accent)' : 'var(--ink2)'}>{p.rank}.</T>
+          <T size={14}>{p.name}</T>
+          <T size={13} color='var(--ink2)' style={{ marginLeft: 'auto' }}>{p.total} pts</T>
+        </div>
+    )}
+      <HR />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+        <Btn w={110} h={34} accent>Rejouer</Btn>
+        <Btn w={110} h={34} ghost>Menu principal</Btn>
+      </div>
+    </Box>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   07 — CLASSEMENT & HISTORIQUE
+══════════════════════════════════════════ */
+const Leaderboard = () =>
+<Screen>
+    <SectionLabel>Classement global</SectionLabel>
+    <Box w={320} h={360} dark style={{ padding: 14, flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
+      <T size={18} bold>Classement</T>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {['Global', 'Hebdo', 'Amis'].map((f, i) =>
+      <div key={f} style={{ padding: '3px 12px', border: '1.5px solid ' + (i === 0 ? 'var(--accent)' : 'rgba(232,224,208,0.25)'), borderRadius: 2 }}>
+            <T size={12} color={i === 0 ? 'var(--accent)' : 'var(--ink2)'}>{f}</T>
+          </div>
+      )}
+      </div>
+      <HR />
+      {[{ rank: 1, name: 'ProGamer42', pts: 4.2 }, { rank: 2, name: 'CardShark', pts: 5.1 }, { rank: 3, name: 'LuckyAce', pts: 5.8 }, { rank: 4, name: 'Tom', pts: 7.1 }, { rank: '...' }, { rank: 47, name: 'Jean (vous)', pts: 11.2, me: true }].map((p, i) =>
+    p.rank === '...' ? <T key={i} size={12} color='var(--ink2)' style={{ textAlign: 'center' }}>· · ·</T> :
+    <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '3px 6px', background: p.me ? 'rgba(200,169,110,0.1)' : 'transparent', border: p.me ? '1.5px solid var(--accent)' : '1.5px solid transparent', borderRadius: 2 }}>
+            <T size={12} color={p.rank <= 3 ? 'var(--accent)' : 'var(--ink2)'}>{p.rank}.</T>
+            <T size={13}>{p.name}</T>
+            <T size={13} bold color={p.rank === 1 ? 'var(--accent)' : 'var(--ink)'} style={{ marginLeft: 'auto' }}>{p.pts} moy.</T>
+          </div>
+
+    )}
+    </Box>
+  </Screen>;
+
+
+const History = () =>
+<Screen>
+    <SectionLabel>Historique des parties</SectionLabel>
+    <Box w={320} h={310} dark style={{ padding: 14, flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
+      <T size={18} bold>Mes parties</T>
+      <HR />
+      {[{ date: '28/04', players: '4J', result: '2ème', score: 12, win: false }, { date: '27/04', players: '2J', result: '1er', score: 7, win: true }, { date: '26/04', players: 'Solo', result: 'Victoire', score: 5, win: true }, { date: '25/04', players: '3J', result: '3ème', score: 21, win: false }].map((h, i) =>
+    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 6px', border: '1.5px solid rgba(232,224,208,0.15)', borderRadius: 2 }}>
+          <T size={11} color='var(--ink2)'>{h.date}</T>
+          <T size={11} color='var(--ink2)'>{h.players}</T>
+          <T size={12} color={h.win ? 'var(--green)' : 'var(--ink)'}>{h.result}</T>
+          <T size={13} bold style={{ marginLeft: 'auto' }}>{h.score} pts</T>
+        </div>
+    )}
+      <HR />
+      <div style={{ display: 'flex', gap: 16 }}>
+        {[{ l: 'Parties', v: 18 }, { l: 'Victoires', v: 7, c: 'var(--green)' }, { l: 'Score moy.', v: '11.2' }].map((s, i) =>
+      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <T size={11} color='var(--ink2)'>{s.l}</T>
+            <T size={16} bold color={s.c || 'var(--ink)'}>{s.v}</T>
+          </div>
+      )}
+      </div>
+    </Box>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   08 — RÈGLES & PARAMÈTRES
+══════════════════════════════════════════ */
+const Rules = () =>
+<Screen>
+    <SectionLabel>Règles du jeu</SectionLabel>
+    <Box w={380} h={460} dark style={{ padding: 14, flexDirection: 'column', justifyContent: 'flex-start', gap: 8, overflow: 'hidden' }}>
+      <T size={18} bold>Règles — COMBO</T>
+      <HR />
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 6, width: '100%' }}>
+      <T size={13} bold>Valeur des cartes</T>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {['A=0', '2=2', '3=3', '…', 'R=13'].map((c, i) =>
+        <div key={i} style={{ padding: '2px 8px', border: '1.5px solid rgba(232,224,208,0.3)', borderRadius: 2 }}>
+            <T size={12}>{c}</T>
+          </div>
+        )}
+      </div>
+
+      <T size={13} bold style={{ marginTop: 4 }}>Pouvoirs spéciaux (têtes rouges)</T>
+      <T size={10} color='var(--ink2)' style={{ fontStyle: 'italic' }}>Activés en posant la carte sur la défausse (au tour normal OU en pose rapide)</T>
+      {[{ card: 'Valet ♦/♥', effect: "Regarder l'une de ses cartes" }, { card: 'Dame ♦/♥', effect: "Regarder la carte d'un adversaire" }, { card: 'Roi ♦/♥', effect: "Échanger sa carte avec celle d'un adversaire" }].map((p, i) =>
+      <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', padding: '4px 6px', border: '1.5px solid rgba(192,80,74,0.3)', borderRadius: 2 }}>
+          <T size={11} color='var(--red)'>{p.card}</T>
+          <T size={11} color='var(--ink2)'>→ {p.effect}</T>
+        </div>
+      )}
+
+      <T size={13} bold style={{ marginTop: 4 }}>Pose rapide ⚡</T>
+      <T size={11} color='var(--ink2)'>À tout moment, si vous savez qu'une de vos cartes a la <b>même valeur</b> que celle au sommet de la défausse, vous pouvez la poser dessus → vous passez à 3 cartes.</T>
+      <div style={{ padding: '4px 6px', border: '1.5px solid rgba(192,80,74,0.4)', borderRadius: 2, background: 'rgba(192,80,74,0.05)' }}>
+        <T size={10} color='var(--red)'>⚠ Mauvaise carte = pénalité : +1 carte (5 cartes au lieu de 4)</T>
+      </div>
+      <T size={10} color='var(--ink2)' style={{ fontStyle: 'italic' }}>Uniquement vos propres cartes. Si tête rouge → pouvoir activé.</T>
+
+      <T size={13} bold style={{ marginTop: 4 }}>Fin de partie</T>
+      <T size={11} color='var(--ink2)'>Un joueur annonce "COMBO" → tout le monde joue un dernier tour → révélation des cartes → le plus faible score gagne.</T>
+      </div>
+    </Box>
+  </Screen>;
+
+
+const Settings = () =>
+<Screen>
+    <SectionLabel>Paramètres</SectionLabel>
+    <Box w={380} h={360} dark style={{ padding: 16, flexDirection: 'column', justifyContent: 'flex-start', gap: 10 }}>
+      <T size={18} bold>Paramètres</T>
+      <HR />
+      {[{ label: 'Son', val: 'ON' }, { label: 'Musique', val: 'OFF' }, { label: 'Animations', val: 'ON' }, { label: 'Langue', val: 'Français' }, { label: 'Thème table', val: 'Vert foncé' }].map((s, i) =>
+    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '4px 0', borderBottom: '1px solid rgba(232,224,208,0.1)', width: '100%' }}>
+          <T size={13}>{s.label}</T>
+          <div style={{ padding: '2px 10px', border: '1.5px solid ' + (s.val === 'ON' ? 'var(--green)' : 'rgba(232,224,208,0.3)'), borderRadius: s.val === 'ON' || s.val === 'OFF' ? 10 : 2, whiteSpace: 'nowrap' }}>
+            <T size={11} color={s.val === 'ON' ? 'var(--green)' : 'var(--ink2)'}>{s.val}</T>
+          </div>
+        </div>
+    )}
+      <HR />
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+        <Btn w={130} h={30} ghost>Mon profil</Btn>
+        <Btn w={130} h={30} red>Déconnexion</Btn>
+      </div>
+    </Box>
+  </Screen>;
+
+
+/* ══════════════════════════════════════════
+   NAVIGATION & APP
+══════════════════════════════════════════ */
+const SECTIONS = [
+  { id: 'home', title: '01 — Accueil / Menu', artboards: [
+    { id: 'homeA', label: 'A: Centré minimaliste', width: 400, height: 480, Component: HomeA },
+    { id: 'homeB', label: 'B: Split hero', width: 480, height: 460, Component: HomeB },
+    { id: 'homeC', label: 'C: Lobby rapide', width: 400, height: 460, Component: HomeC }
+  ]},
+  { id: 'auth', title: '02 — Authentification', artboards: [
+    { id: 'authA', label: 'A: Modal centré', width: 400, height: 480, Component: AuthA },
+    { id: 'authB', label: 'B: Split login/register', width: 460, height: 400, Component: AuthB }
+  ]},
+  { id: 'lobby', title: '03 — Lobby', artboards: [
+    { id: 'lobbyA', label: "A: Salle d'attente", width: 420, height: 540, Component: LobbyA },
+    { id: 'lobbyB', label: 'B: Créer / Rejoindre par code', width: 520, height: 460, Component: LobbyB }
+  ]},
+  { id: 'game', title: '04 — Écran de jeu', artboards: [
+    { id: 'memorize', label: 'Phase mémorisation (20s)', width: 460, height: 560, Component: GameMemorize },
+    { id: 'game2p', label: '2 joueurs (face à face)', width: 560, height: 620, Component: GameTable2P },
+    { id: 'game4p', label: '4 joueurs (autour de la table)', width: 520, height: 560, Component: GameTable4P },
+    { id: 'gameSolo', label: 'Solo vs IA', width: 620, height: 620, Component: GameSolo },
+    { id: 'penalty', label: 'Joueur avec pénalité (5+ cartes)', width: 580, height: 500, Component: PlayerPenalty }
+  ]},
+  { id: 'actions', title: '05 — Interactions en jeu', artboards: [
+    { id: 'swap', label: 'Échanger une carte (pioche)', width: 480, height: 400, Component: ActionSwap },
+    { id: 'power', label: 'Pouvoir spécial — Dame rouge', width: 620, height: 560, Component: ActionPower }
+  ]},
+  { id: 'endround', title: '06 — Fin de manche / partie', artboards: [
+    { id: 'endA', label: 'A: Révélation des scores', width: 520, height: 560, Component: EndRoundA },
+    { id: 'endB', label: 'B: Classement final', width: 400, height: 460, Component: EndRoundB }
+  ]},
+  { id: 'leaderboard', title: '07 — Classement & Historique', artboards: [
+    { id: 'leaderA', label: 'Classement global', width: 400, height: 440, Component: Leaderboard },
+    { id: 'historyA', label: 'Historique personnel', width: 400, height: 400, Component: History }
+  ]},
+  { id: 'settings', title: '08 — Règles & Paramètres', artboards: [
+    { id: 'rulesA', label: 'Règles du jeu', width: 460, height: 540, Component: Rules },
+    { id: 'settingsA', label: 'Paramètres', width: 460, height: 460, Component: Settings }
+  ]}
+];
+
+function Artboard({ label, width, height, Component }) {
+  return (
+    <div className="artboard">
+      <div className="artboard-label">
+        <span>{label}</span>
+        <span className="dim">{width}×{height}</span>
+      </div>
+      <div className="artboard-canvas" style={{ width, height }}>
+        <Component />
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [active, setActive] = React.useState(SECTIONS[0].id);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter(e => e.isIntersecting);
+        if (visible.length > 0) {
+          visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+          setActive(visible[0].target.id);
+        }
+      },
+      { rootMargin: '-10% 0px -70% 0px', threshold: 0 }
+    );
+    SECTIONS.forEach(s => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const handleNav = (e, id) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <div className="app">
+      <nav className="sidebar">
+        <h1>COMBO</h1>
+        <div className="subtitle">Wireframes</div>
+        {SECTIONS.map(s => (
+          <a
+            key={s.id}
+            href={'#' + s.id}
+            className={'nav-link' + (active === s.id ? ' active' : '')}
+            onClick={(e) => handleNav(e, s.id)}
+          >
+            {s.title}
+          </a>
+        ))}
+      </nav>
+      <main className="main">
+        {SECTIONS.map(s => (
+          <section key={s.id} id={s.id} className="section">
+            <h2 className="section-header">{s.title}</h2>
+            <div className="artboards">
+              {s.artboards.map(a => <Artboard key={a.id} {...a} />)}
+            </div>
+          </section>
+        ))}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
