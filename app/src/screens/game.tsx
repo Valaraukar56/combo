@@ -789,7 +789,8 @@ export function PowerScreen() {
     setChosenTargetId(null);
     setIsResolved(false);
     clearReveal();
-  }, [pendingPower?.type, clearReveal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPower?.type]);
 
   useEffect(() => {
     if (!lastReveal) return;
