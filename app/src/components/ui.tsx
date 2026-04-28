@@ -224,7 +224,17 @@ export function GameTopBar({
           </span>
         )}
       </div>
-      <Logo size={22} />
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+        }}
+      >
+        <Logo size={22} />
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>{rightContent}</div>
     </div>
   );

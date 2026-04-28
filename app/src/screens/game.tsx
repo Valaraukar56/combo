@@ -208,9 +208,8 @@ export function GameTableScreen() {
         <div
           style={{
             position: 'absolute',
-            top: '50%',
+            top: 80,
             left: 'calc(50% + 280px)',
-            transform: 'translateY(-50%)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
