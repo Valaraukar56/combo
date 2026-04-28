@@ -350,29 +350,41 @@ export function GameTableScreen() {
           bottom: 0,
           left: 0,
           right: 0,
+          height: 220,
           padding: '24px 40px 32px',
           background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 100%)',
+          pointerEvents: 'none',
         }}
       >
         <div
           style={{
+            position: 'absolute',
+            left: 40,
+            bottom: 32,
             display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            maxWidth: 1100,
-            margin: '0 auto',
+            alignItems: 'center',
+            gap: 12,
+            pointerEvents: 'auto',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Avatar name={me.pseudo} size={44} ring={isMyTurn ? 'gold' : null} />
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>{me.pseudo}</div>
-              <div className="eyebrow" style={{ color: 'var(--gold)' }}>
-                {isMyTurn ? 'À vous de jouer' : "C'est pas votre tour"}
-              </div>
+          <Avatar name={me.pseudo} size={44} ring={isMyTurn ? 'gold' : null} />
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>{me.pseudo}</div>
+            <div className="eyebrow" style={{ color: 'var(--gold)' }}>
+              {isMyTurn ? 'À vous de jouer' : "C'est pas votre tour"}
             </div>
           </div>
+        </div>
 
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            pointerEvents: 'auto',
+          }}
+        >
           <MyHand
             cards={privateHand}
             holes={privateHoles}
@@ -382,38 +394,42 @@ export function GameTableScreen() {
             onSwap={(idx) => tryAction(() => swap(idx))}
             onSnap={(idx) => tryAction(() => snap(idx))}
           />
+        </div>
 
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              alignItems: 'flex-end',
-            }}
+        <div
+          style={{
+            position: 'absolute',
+            right: 40,
+            bottom: 32,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            alignItems: 'flex-end',
+            pointerEvents: 'auto',
+          }}
+        >
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={!isMyTurn || phase !== 'turn' || !!drawnCard}
+            onClick={() => tryAction(callCombo)}
           >
-            <Button
-              variant="primary"
-              size="lg"
-              disabled={!isMyTurn || phase !== 'turn' || !!drawnCard}
-              onClick={() => tryAction(callCombo)}
+            Crier{' '}
+            <em
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontStyle: 'italic',
+                marginLeft: 4,
+                fontSize: 18,
+              }}
             >
-              Crier{' '}
-              <em
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontStyle: 'italic',
-                  marginLeft: 4,
-                  fontSize: 18,
-                }}
-              >
-                Combo !
-              </em>
-            </Button>
-            <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
-              ⚡ Snap : cliquez sur une carte de votre main quand{' '}
-              <span style={{ color: 'var(--crimson)' }}>SNAP ?</span> est affiché
-            </span>
-          </div>
+              Combo !
+            </em>
+          </Button>
+          <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', maxWidth: 240, textAlign: 'right' }}>
+            ⚡ Snap : cliquez sur une carte de votre main quand{' '}
+            <span style={{ color: 'var(--crimson)' }}>SNAP ?</span> est affiché
+          </span>
         </div>
       </div>
 
@@ -613,13 +629,13 @@ function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: M
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
       >
         {hole ? (
-          <EmptySlot size="md" />
+          <EmptySlot size="lg" />
         ) : (
           <PlayingCard
             rank={c?.rank}
             suit={c?.suit}
             faceDown={!c}
-            size="md"
+            size="lg"
             onClick={
               clickable
                 ? () => {
