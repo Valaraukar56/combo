@@ -204,6 +204,13 @@ export function setupSocketServer(io: Server): void {
       room.drawnFromDiscard = false;
       room.pendingPower = { rank, type };
       room.phase = 'power';
+      // Mirror the discard event so the client sets pendingPower locally.
+      io.to(roomChannel(room.code)).emit('game:event', {
+        type: 'discard',
+        actorId: user.id,
+        card: { rank, suit: '♥' },
+        powerType: type,
+      });
       broadcastRoomState(io, room);
       sendPrivateHandsAll(io, room);
       ack?.({ ok: true });
