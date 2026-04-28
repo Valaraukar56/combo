@@ -546,20 +546,20 @@ function OpponentHand({ count, holes = [] }: { count: number; holes?: number[] }
   const extras: number[] = [];
   for (let i = 4; i < count; i++) extras.push(i);
   const slot = (i: number) => (
-    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
       {holes.includes(i) || i >= count ? (
-        <EmptySlot size="lg" />
+        <EmptySlot size="md" />
       ) : (
-        <PlayingCard faceDown size="lg" />
+        <PlayingCard faceDown size="md" />
       )}
-      <div style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
+      <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
         #{i + 1}
       </div>
     </div>
   );
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {orderedIndices.map(slot)}
       </div>
       {extras.length > 0 && (
