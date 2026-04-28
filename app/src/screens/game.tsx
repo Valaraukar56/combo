@@ -208,7 +208,7 @@ export function GameTableScreen() {
         <div
           style={{
             position: 'absolute',
-            top: 80,
+            top: 24,
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
@@ -219,7 +219,12 @@ export function GameTableScreen() {
         >
           <PlayerBadge player={opponentTop} />
           <div style={{ transform: 'rotate(180deg)' }}>
-            <OpponentHand count={opponentTop.handCount} holes={opponentTop.holes} />
+            <OpponentHand
+              count={opponentTop.handCount}
+              holes={opponentTop.holes}
+              size="lg"
+              layout="1x4"
+            />
           </div>
         </div>
       )}
@@ -540,26 +545,35 @@ function EmptySlot({ size }: { size: 'sm' | 'md' | 'lg' }) {
   );
 }
 
-function OpponentHand({ count, holes = [] }: { count: number; holes?: number[] }) {
+interface OpponentHandProps {
+  count: number;
+  holes?: number[];
+  size?: 'md' | 'lg';
+  layout?: '2x2' | '1x4';
+}
+
+function OpponentHand({ count, holes = [], size = 'lg', layout = '2x2' }: OpponentHandProps) {
   const slotCount = Math.max(count, 4);
-  const orderedIndices = [2, 3, 0, 1].filter((i) => i < slotCount);
+  const baseOrder = layout === '1x4' ? [3, 2, 1, 0] : [2, 3, 0, 1];
+  const orderedIndices = baseOrder.filter((i) => i < slotCount);
   const extras: number[] = [];
   for (let i = 4; i < count; i++) extras.push(i);
   const slot = (i: number) => (
     <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
       {holes.includes(i) || i >= count ? (
-        <EmptySlot size="md" />
+        <EmptySlot size={size} />
       ) : (
-        <PlayingCard faceDown size="md" />
+        <PlayingCard faceDown size={size} />
       )}
       <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
         #{i + 1}
       </div>
     </div>
   );
+  const gridCols = layout === '1x4' ? 'repeat(4, 1fr)' : '1fr 1fr';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 8 }}>
         {orderedIndices.map(slot)}
       </div>
       {extras.length > 0 && (
@@ -586,7 +600,7 @@ function SideOpponentLive({ player, side }: { player: PublicPlayer; side: 'left'
       style={{
         position: 'absolute',
         top: '50%',
-        [side]: 28,
+        [side]: 100,
         transform: 'translateY(-50%)',
         display: 'flex',
         flexDirection: 'column',
@@ -595,8 +609,8 @@ function SideOpponentLive({ player, side }: { player: PublicPlayer; side: 'left'
       }}
     >
       <PlayerBadge player={player} />
-      <div style={{ transform: `rotate(${rot}deg)`, padding: '14px 6px' }}>
-        <OpponentHand count={player.handCount} holes={player.holes} />
+      <div style={{ transform: `rotate(${rot}deg)` }}>
+        <OpponentHand count={player.handCount} holes={player.holes} size="lg" />
       </div>
     </div>
   );
