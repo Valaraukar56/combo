@@ -17,7 +17,7 @@ interface Player {
   isBot: boolean;
   ready: boolean;
   connected: boolean;
-  hand: Card[];                  // server-authoritative, never sent in full to clients
+  hand: (Card | null)[];         // server-authoritative; null = empty hole left by a successful snap
   knownByOwner: boolean[];       // for each card, whether the owner currently knows it (memorize phase or peek powers)
   totalScore: number;
   isComboCaller: boolean;
@@ -224,9 +224,9 @@ export class Room {
     const replaced = p.hand[idx];
     p.hand[idx] = this.drawnCard;
     p.knownByOwner[idx] = false;
-    this.discard.push(replaced);
+    if (replaced) this.discard.push(replaced);
     this.drawnCard = null;
-    return { ok: true, replaced };
+    return { ok: true, replaced: replaced ?? undefined };
   }
 
   /** Direct discard of the drawn card. Returns the discarded card and whether a power should activate. */
@@ -277,8 +277,10 @@ export class Room {
     if (!this.isCurrentTurn(playerId)) return { ok: false, error: 'not_your_turn' };
     const p = this.players[this.currentTurnIdx];
     if (idx < 0 || idx >= p.hand.length) return { ok: false, error: 'invalid_idx' };
+    const c = p.hand[idx];
+    if (!c) return { ok: false, error: 'empty_slot' };
     p.knownByOwner[idx] = true;
-    return { ok: true, card: p.hand[idx] };
+    return { ok: true, card: c };
   }
 
   resolveOpponentPeek(
@@ -293,7 +295,9 @@ export class Room {
     const target = this.players.find((x) => x.id === targetId);
     if (!target || target.id === playerId) return { ok: false, error: 'invalid_target' };
     if (idx < 0 || idx >= target.hand.length) return { ok: false, error: 'invalid_idx' };
-    return { ok: true, card: target.hand[idx] };
+    const c = target.hand[idx];
+    if (!c) return { ok: false, error: 'empty_slot' };
+    return { ok: true, card: c };
   }
 
   resolveSwap(
@@ -313,6 +317,7 @@ export class Room {
     if (targetIdx < 0 || targetIdx >= target.hand.length) {
       return { ok: false, error: 'invalid_target_idx' };
     }
+    if (!p.hand[selfIdx] || !target.hand[targetIdx]) return { ok: false, error: 'empty_slot' };
     const a = p.hand[selfIdx];
     p.hand[selfIdx] = target.hand[targetIdx];
     target.hand[targetIdx] = a;
@@ -343,12 +348,13 @@ export class Room {
       return { ok: false, success: false, error: 'invalid_idx' };
     }
     const candidate = player.hand[cardIdx];
+    if (!candidate) return { ok: false, success: false, error: 'empty_slot' };
     const top = this.discard[this.discard.length - 1];
     if (!top) return { ok: false, success: false, error: 'no_discard' };
     if (candidate.rank === top.rank) {
-      // Success: remove the card from their hand
-      player.hand.splice(cardIdx, 1);
-      player.knownByOwner.splice(cardIdx, 1);
+      // Success: leave a hole at the snapped slot (preserve original positions)
+      player.hand[cardIdx] = null;
+      player.knownByOwner[cardIdx] = false;
       this.discard.push(candidate);
       return { ok: true, success: true, card: candidate };
     }
@@ -392,7 +398,7 @@ export class Room {
   endRound(): RoundResult[] {
     this.phase = 'round-end';
     const callerId = this.comboCallerId;
-    const scores = this.players.map((p) => ({ p, score: handScore(p.hand) }));
+    const scores = this.players.map((p) => ({ p, score: handScore(p.hand.filter((c): c is Card => !!c)) }));
     const lowest = Math.min(...scores.map((s) => s.score));
     const callerScore = callerId ? scores.find((s) => s.p.id === callerId)?.score ?? null : null;
     const callerWasLowest = !!callerId && callerScore === lowest;
@@ -407,7 +413,7 @@ export class Room {
       return {
         playerId: p.id,
         pseudo: p.pseudo,
-        cards: [...p.hand],
+        cards: p.hand.filter((c): c is Card => !!c),
         score: total,
         totalScore: p.totalScore,
         isComboCaller: p.id === callerId,
@@ -474,6 +480,7 @@ export class Room {
         ready: p.ready,
         connected: p.connected,
         handCount: p.hand.length,
+        holes: p.hand.map((c, i) => (c ? -1 : i)).filter((i) => i >= 0),
         totalScore: p.totalScore,
         isComboCaller: p.isComboCaller,
         isCurrentTurn: i === this.currentTurnIdx && (this.phase === 'turn' || this.phase === 'power' || this.phase === 'combo-final'),
@@ -491,7 +498,8 @@ export class Room {
     const p = this.players.find((x) => x.id === playerId);
     if (!p) return { cards: [] };
     return {
-      cards: p.hand.map((c, i) => (p.knownByOwner[i] ? c : null)),
+      cards: p.hand.map((c, i) => (c && p.knownByOwner[i] ? c : null)),
+      holes: p.hand.map((c, i) => (c ? -1 : i)).filter((i) => i >= 0),
     };
   }
 }

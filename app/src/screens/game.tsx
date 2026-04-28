@@ -148,6 +148,7 @@ export function GameTableScreen() {
   const {
     roomState,
     privateHand,
+    privateHoles,
     drawnCard,
     fromDiscard,
     draw,
@@ -217,7 +218,7 @@ export function GameTableScreen() {
           }}
         >
           <PlayerBadge player={opponentTop} />
-          <OpponentHand count={opponentTop.handCount} />
+          <OpponentHand count={opponentTop.handCount} holes={opponentTop.holes} />
         </div>
       )}
 
@@ -372,6 +373,7 @@ export function GameTableScreen() {
 
           <MyHand
             cards={privateHand}
+            holes={privateHoles}
             handCount={me.handCount}
             canSwap={isMyTurn && phase === 'turn' && !!drawnCard}
             canSnap={phase === 'snap-window'}
@@ -461,12 +463,28 @@ function PlayerBadge({ player }: { player: PublicPlayer }) {
   );
 }
 
-function OpponentHand({ count }: { count: number }) {
+function EmptySlot({ size }: { size: 'sm' | 'md' | 'lg' }) {
+  const dims = size === 'sm' ? { w: 48, h: 68 } : size === 'lg' ? { w: 96, h: 138 } : { w: 68, h: 96 };
+  return (
+    <div
+      style={{
+        width: dims.w,
+        height: dims.h,
+        border: '1.5px dashed var(--border)',
+        borderRadius: 7,
+        background: 'rgba(0,0,0,0.2)',
+        boxSizing: 'border-box',
+      }}
+    />
+  );
+}
+
+function OpponentHand({ count, holes = [] }: { count: number; holes?: number[] }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <PlayingCard key={i} faceDown size="sm" />
-      ))}
+      {Array.from({ length: count }).map((_, i) =>
+        holes.includes(i) ? <EmptySlot key={i} size="sm" /> : <PlayingCard key={i} faceDown size="sm" />
+      )}
     </div>
   );
 }
@@ -488,7 +506,7 @@ function SideOpponentLive({ player, side }: { player: PublicPlayer; side: 'left'
     >
       <PlayerBadge player={player} />
       <div style={{ transform: `rotate(${rot}deg)`, padding: '14px 6px' }}>
-        <OpponentHand count={player.handCount} />
+        <OpponentHand count={player.handCount} holes={player.holes} />
       </div>
     </div>
   );
@@ -496,6 +514,7 @@ function SideOpponentLive({ player, side }: { player: PublicPlayer; side: 'left'
 
 interface MyHandProps {
   cards: (Card | null)[];
+  holes: number[];
   handCount: number;
   canSwap: boolean;
   canSnap: boolean;
@@ -503,35 +522,41 @@ interface MyHandProps {
   onSnap: (idx: number) => void;
 }
 
-function MyHand({ cards, handCount, canSwap, canSnap, onSwap, onSnap }: MyHandProps) {
-  // The order [2,3,0,1] places cards 3&4 (indices 2,3) on top and 1&2 (indices 0,1) on bottom.
-  const orderedIndices = [2, 3, 0, 1].filter((i) => i < handCount);
+function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: MyHandProps) {
+  // Always render the original 4 base slots (indices 0..3). Holes stay as empty placeholders.
+  const orderedIndices = [2, 3, 0, 1];
   const extras: number[] = [];
   for (let i = 4; i < handCount; i++) extras.push(i);
+  const isHole = (i: number) => holes.includes(i);
 
   const renderCard = (i: number) => {
     const c = cards[i];
-    const clickable = canSwap || canSnap;
+    const hole = isHole(i);
+    const clickable = !hole && (canSwap || canSnap);
     return (
       <div
         key={i}
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
       >
-        <PlayingCard
-          rank={c?.rank}
-          suit={c?.suit}
-          faceDown={!c}
-          size="md"
-          onClick={
-            clickable
-              ? () => {
-                  if (canSwap) onSwap(i);
-                  else if (canSnap) onSnap(i);
-                }
-              : null
-          }
-          highlight={c ? 'memorized' : null}
-        />
+        {hole ? (
+          <EmptySlot size="md" />
+        ) : (
+          <PlayingCard
+            rank={c?.rank}
+            suit={c?.suit}
+            faceDown={!c}
+            size="md"
+            onClick={
+              clickable
+                ? () => {
+                    if (canSwap) onSwap(i);
+                    else if (canSnap) onSnap(i);
+                  }
+                : null
+            }
+            highlight={c ? 'memorized' : null}
+          />
+        )}
         <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
           {i + 1}
         </div>
@@ -797,6 +822,14 @@ export function PowerScreen() {
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               {Array.from({ length: me.handCount }).map((_, i) => {
+                if (me.holes?.includes(i)) {
+                  return (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <EmptySlot size="lg" />
+                      <div style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>#{i + 1}</div>
+                    </div>
+                  );
+                }
                 const isChosen = chosenIdx === i;
                 const card = lastReveal && isChosen ? lastReveal.card : null;
                 return (
@@ -910,6 +943,14 @@ function OpponentHandPicker({
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         {Array.from({ length: player.handCount }).map((_, i) => {
+          if (player.holes?.includes(i)) {
+            return (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <EmptySlot size="md" />
+                <div style={{ fontSize: 10, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>#{i + 1}</div>
+              </div>
+            );
+          }
           const isChosen = chosenIdx === i;
           const card = revealedCard && isChosen ? revealedCard : null;
           return (
@@ -964,23 +1005,26 @@ function SwapPicker({ me, opponents, disabled, onSwap }: SwapPickerProps) {
       {step === 'self' ? (
         <div className="panel" style={{ background: 'rgba(0,0,0,0.4)', borderColor: 'var(--gold)' }}>
           <div style={{ display: 'flex', gap: 12 }}>
-            {Array.from({ length: me.handCount }).map((_, i) => (
-              <div
-                key={i}
-                onClick={() => {
-                  if (disabled) return;
-                  setSelfIdx(i);
-                  setStep('opponent');
-                }}
-                style={{ cursor: disabled ? 'default' : 'pointer' }}
-              >
-                <PlayingCard
-                  faceDown
-                  size="md"
-                  highlight={selfIdx === i ? 'selected' : null}
-                />
-              </div>
-            ))}
+            {Array.from({ length: me.handCount }).map((_, i) => {
+              if (me.holes?.includes(i)) return <EmptySlot key={i} size="md" />;
+              return (
+                <div
+                  key={i}
+                  onClick={() => {
+                    if (disabled) return;
+                    setSelfIdx(i);
+                    setStep('opponent');
+                  }}
+                  style={{ cursor: disabled ? 'default' : 'pointer' }}
+                >
+                  <PlayingCard
+                    faceDown
+                    size="md"
+                    highlight={selfIdx === i ? 'selected' : null}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
@@ -998,18 +1042,21 @@ function SwapPicker({ me, opponents, disabled, onSwap }: SwapPickerProps) {
                 {opp.pseudo}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {Array.from({ length: opp.handCount }).map((_, i) => (
-                  <div
-                    key={i}
-                    onClick={() => {
-                      if (disabled || selfIdx === null) return;
-                      onSwap(selfIdx, opp.id, i);
-                    }}
-                    style={{ cursor: disabled ? 'default' : 'pointer' }}
-                  >
-                    <PlayingCard faceDown size="sm" />
-                  </div>
-                ))}
+                {Array.from({ length: opp.handCount }).map((_, i) => {
+                  if (opp.holes?.includes(i)) return <EmptySlot key={i} size="sm" />;
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        if (disabled || selfIdx === null) return;
+                        onSwap(selfIdx, opp.id, i);
+                      }}
+                      style={{ cursor: disabled ? 'default' : 'pointer' }}
+                    >
+                      <PlayingCard faceDown size="sm" />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

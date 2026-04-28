@@ -38,6 +38,7 @@ export interface PublicPlayer {
   ready: boolean;
   connected: boolean;
   handCount: number;
+  holes: number[];
   totalScore: number;
   isComboCaller?: boolean;
   isCurrentTurn?: boolean;
@@ -102,6 +103,7 @@ interface GameContextValue {
   connected: boolean;
   roomState: RoomStatePayload | null;
   privateHand: (Card | null)[];
+  privateHoles: number[];
   drawnCard: Card | null;
   fromDiscard: boolean;
   pendingPower: { rank: string; type: PowerType } | null;
@@ -136,6 +138,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [roomState, setRoomState] = useState<RoomStatePayload | null>(null);
   const [privateHand, setPrivateHand] = useState<(Card | null)[]>([]);
+  const [privateHoles, setPrivateHoles] = useState<number[]>([]);
   const [drawnCard, setDrawnCard] = useState<Card | null>(null);
   const [fromDiscard, setFromDiscard] = useState(false);
   const [pendingPower, setPendingPower] = useState<{ rank: string; type: PowerType } | null>(null);
@@ -166,8 +169,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const onHand = (payload: { cards: (Card | null)[] }) => {
+    const onHand = (payload: { cards: (Card | null)[]; holes?: number[] }) => {
       setPrivateHand(payload.cards);
+      setPrivateHoles(payload.holes ?? []);
     };
 
     const onDrawn = (payload: { card: Card; fromDiscard: boolean }) => {
@@ -232,6 +236,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     connected,
     roomState,
     privateHand,
+    privateHoles,
     drawnCard,
     fromDiscard,
     pendingPower,
@@ -252,6 +257,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       await emit('room:leave');
       setRoomState(null);
       setPrivateHand([]);
+      setPrivateHoles([]);
       setDrawnCard(null);
       setRoundResults(null);
       setFinalResults(null);

@@ -199,7 +199,7 @@ export function setupSocketServer(io: Server): void {
         success: result.success,
         card: result.card,
       });
-      io.to(roomChannel(room.code)).emit('game:state', room.publicState());
+      broadcastRoomState(io, room);
       sendPrivateHandsAll(io, room);
       ack?.({ ok: true, success: result.success });
     });
@@ -424,23 +424,24 @@ function autoResolveBotPower(
   botId: string,
   type: 'self-peek' | 'opponent-peek' | 'swap'
 ): void {
+  const pickSlot = (hand: { length: number; [i: number]: unknown }): number => {
+    const filled: number[] = [];
+    for (let i = 0; i < hand.length; i++) if (hand[i]) filled.push(i);
+    if (filled.length === 0) return 0;
+    return filled[Math.floor(Math.random() * filled.length)];
+  };
   setTimeout(() => {
     if (type === 'self-peek') {
       const me = room.players.find((p) => p.id === botId);
-      if (me) room.resolveSelfPeek(botId, Math.floor(Math.random() * me.hand.length));
+      if (me) room.resolveSelfPeek(botId, pickSlot(me.hand));
     } else if (type === 'opponent-peek') {
       const opp = room.players.find((p) => p.id !== botId);
-      if (opp) room.resolveOpponentPeek(botId, opp.id, Math.floor(Math.random() * opp.hand.length));
+      if (opp) room.resolveOpponentPeek(botId, opp.id, pickSlot(opp.hand));
     } else {
       const opp = room.players.find((p) => p.id !== botId);
       const me = room.players.find((p) => p.id === botId);
       if (opp && me) {
-        room.resolveSwap(
-          botId,
-          Math.floor(Math.random() * me.hand.length),
-          opp.id,
-          Math.floor(Math.random() * opp.hand.length)
-        );
+        room.resolveSwap(botId, pickSlot(me.hand), opp.id, pickSlot(opp.hand));
       }
     }
     finishPower(io, room);

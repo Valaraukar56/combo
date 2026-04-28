@@ -19,6 +19,7 @@ export interface PublicPlayer {
   ready: boolean;
   connected: boolean;
   handCount: number;
+  holes: number[];
   totalScore: number;
   isComboCaller?: boolean;
   isCurrentTurn?: boolean;
@@ -66,7 +67,8 @@ export interface RoomStatePayload {
 }
 
 export interface PrivateHandPayload {
-  cards: (Card | null)[];   // null for cards the player doesn't currently know
+  cards: (Card | null)[];   // null for cards the player doesn't currently know OR for empty holes
+  holes: number[];          // indices that are empty slots (e.g., after a successful snap)
 }
 
 export interface PowerPromptPayload {

@@ -18,10 +18,11 @@ export interface BotMove {
   idx?: number;
 }
 
-function knownTotal(hand: Card[], known: boolean[]): number {
+function knownTotal(hand: (Card | null)[], known: boolean[]): number {
   let sum = 0;
   let unknown = 0;
   hand.forEach((c, i) => {
+    if (!c) return;
     if (known[i]) sum += cardValue(c);
     else unknown += 1;
   });
@@ -56,7 +57,7 @@ export function decideAfterDraw(room: Room, botId: string, drawn: Card): BotMove
   let worstIdx = -1;
   let worstVal = drawnVal;
   me.hand.forEach((c, i) => {
-    if (me.knownByOwner[i] && cardValue(c) > worstVal) {
+    if (c && me.knownByOwner[i] && cardValue(c) > worstVal) {
       worstVal = cardValue(c);
       worstIdx = i;
     }
@@ -71,7 +72,7 @@ export function decideAfterDraw(room: Room, botId: string, drawn: Card): BotMove
   // Mid card: 30% swap into an unknown random slot
   if (drawnVal <= 6 && Math.random() < 0.4) {
     const unknownIdxs = me.hand
-      .map((_, i) => (me.knownByOwner[i] ? -1 : i))
+      .map((c, i) => (c && !me.knownByOwner[i] ? i : -1))
       .filter((i) => i >= 0);
     if (unknownIdxs.length > 0) {
       return { kind: 'swap', idx: unknownIdxs[Math.floor(Math.random() * unknownIdxs.length)] };
