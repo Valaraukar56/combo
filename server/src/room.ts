@@ -254,7 +254,13 @@ export class Room {
     this.drawnFromDiscard = false;
     this.pendingPower = null;
     if (this.comboCallerId) {
-      this.finalTurnsRemaining -= 1;
+      // Only count down on OTHER players' turns ending — the caller's turn
+      // ends immediately after the combo call without playing, and shouldn't
+      // consume a final-loop slot.
+      const justEndedId = this.players[this.currentTurnIdx]?.id;
+      if (justEndedId !== this.comboCallerId) {
+        this.finalTurnsRemaining -= 1;
+      }
       if (this.finalTurnsRemaining <= 0) {
         return { roundOver: true };
       }
