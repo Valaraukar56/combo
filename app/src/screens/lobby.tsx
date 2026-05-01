@@ -321,6 +321,7 @@ function CreateRoomForm({ onCancel, onCreate }: CreateRoomFormProps) {
           <SegmentedChoice
             value={rounds}
             options={[
+              { v: 1, label: '1' },
               { v: 3, label: '3' },
               { v: 5, label: '5' },
               { v: 7, label: '7' },
