@@ -223,7 +223,7 @@ function ActionTile({ eyebrow, title, desc, cta, accent, onClick, cards }: Actio
           display: 'flex',
           height: 100,
           width: 100,
-          opacity: hover ? 1 : 0.7,
+          opacity: hover ? 0.35 : 0.55,
           transition: 'opacity var(--t)',
           pointerEvents: 'none',
         }}
@@ -243,23 +243,29 @@ function ActionTile({ eyebrow, title, desc, cta, accent, onClick, cards }: Actio
         ))}
       </div>
 
-      <div>
+      <div style={{ position: 'relative' }}>
         <div className="eyebrow" style={{ color: accentColor, marginBottom: 6 }}>
           {eyebrow}
         </div>
         <h3
           className="display"
-          style={{ fontSize: 26, margin: '0 0 12px', color: 'var(--ink)' }}
+          style={{
+            fontSize: 26,
+            margin: '0 0 12px',
+            color: hover ? accentColor : 'var(--ink)',
+            transition: 'color var(--t)',
+          }}
         >
           {title}
         </h3>
         <p
           style={{
             fontSize: 13,
-            color: 'var(--ink-2)',
+            color: hover ? 'var(--ink)' : 'var(--ink-2)',
             margin: 0,
             lineHeight: 1.5,
             maxWidth: 260,
+            transition: 'color var(--t)',
           }}
         >
           {desc}
@@ -273,6 +279,9 @@ function ActionTile({ eyebrow, title, desc, cta, accent, onClick, cards }: Actio
           display: 'flex',
           alignItems: 'center',
           gap: 8,
+          transform: hover ? 'translateX(4px)' : 'translateX(0)',
+          transition: 'transform var(--t)',
+          position: 'relative',
         }}
       >
         {cta}
