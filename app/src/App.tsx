@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DevNav } from './components/DevNav';
+import { DisconnectBanner } from './components/DisconnectBanner';
 import { useAuth } from './lib/auth';
 import { useGame } from './lib/game';
 import { HomeScreen, LoginScreen, RegisterScreen } from './screens/auth';
@@ -96,6 +97,7 @@ export function AppShell() {
     return (
       <>
         {inner}
+        <DisconnectBanner />
         {showSnap && <SnapResolutionScreen />}
         {user.isAdmin && <DevNav onJump={setPage} />}
       </>
