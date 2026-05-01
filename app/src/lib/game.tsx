@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from './auth';
+import { clearLastRoomCode, saveLastRoomCode } from './roomCode';
 import { ensureConnected } from './socket';
 import type { Card } from '../types';
 
@@ -169,6 +170,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (state.phase !== 'turn' && state.phase !== 'combo-final') {
         setDrawnCard(null);
       }
+      // Once the game truly ends, drop the saved code so the lobby doesn't
+      // keep offering to rejoin a finished room.
+      if (state.phase === 'game-end') clearLastRoomCode();
     };
 
     const onHand = (payload: { cards: (Card | null)[]; holes?: number[] }) => {
@@ -249,10 +253,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     events,
     createRoom: async (cfg) => {
       const r = await emit<{ ok: true; code: string }>('room:create', cfg);
+      saveLastRoomCode(r.code);
       return r.code;
     },
     joinRoom: async (code) => {
       const r = await emit<{ ok: true; code: string }>('room:join', { code });
+      saveLastRoomCode(r.code);
       return r.code;
     },
     leaveRoom: async () => {

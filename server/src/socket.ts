@@ -287,9 +287,27 @@ function currentRoom(socket: Sock): Room | null {
 function leaveRoom(io: Server, socket: Sock): void {
   const room = currentRoom(socket);
   if (!room) return;
+  const userId = socket.data.user.id;
   socket.leave(roomChannel(room.code));
-  room.removePlayer(socket.data.user.id);
   socket.data.roomCode = null;
+
+  // Hard remove during waiting (player abandons before the game starts) and
+  // after game-end (game is over, nothing to come back to). For any in-progress
+  // phase, treat the leave like a disconnect so the slot stays open for the
+  // grace window and the player can rejoin via the same room code.
+  const inProgress = room.phase !== 'waiting' && room.phase !== 'game-end';
+  if (inProgress) {
+    room.markDisconnect(userId, () => {
+      broadcastRoomState(io, room);
+      if (room.players.filter((p) => p.connected || p.isBot).length === 0) {
+        deleteRoom(room.code);
+      }
+    });
+    broadcastRoomState(io, room);
+    return;
+  }
+
+  room.removePlayer(userId);
   if (room.players.filter((p) => !p.isBot).length === 0) {
     deleteRoom(room.code);
   } else {

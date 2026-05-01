@@ -13,6 +13,7 @@ import { useToast } from '../components/Toast';
 import { useAuth } from '../lib/auth';
 import { useGame } from '../lib/game';
 import { api, type UserStats } from '../lib/api';
+import { clearLastRoomCode, getLastRoomCode } from '../lib/roomCode';
 import type { Page as PageId } from '../types';
 
 interface NavProps {
@@ -27,6 +28,7 @@ export function LobbyScreen({ onNavigate }: NavProps) {
   const [showJoin, setShowJoin] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [lastCode, setLastCode] = useState<string | null>(() => getLastRoomCode());
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +39,22 @@ export function LobbyScreen({ onNavigate }: NavProps) {
       cancelled = true;
     };
   }, [user?.id]);
+
+  const handleResume = async () => {
+    if (!lastCode) return;
+    try {
+      await joinRoom(lastCode);
+    } catch {
+      clearLastRoomCode();
+      setLastCode(null);
+      toast.push('Le salon précédent n\'est plus disponible.', 'danger');
+    }
+  };
+
+  const dismissResume = () => {
+    clearLastRoomCode();
+    setLastCode(null);
+  };
 
   const handleCreate = async (cfg: { maxPlayers: number; rounds: number; isPrivate: boolean; isSolo: boolean }) => {
     try {
@@ -73,6 +91,55 @@ export function LobbyScreen({ onNavigate }: NavProps) {
             sub="Créez une partie privée pour vos amis, rejoignez-en une avec un code, ou affrontez l'IA en solo."
             level="h1"
           />
+
+          {lastCode && (
+            <div
+              style={{
+                marginTop: 28,
+                background: 'rgba(200, 169, 110, 0.08)',
+                border: '1.5px solid var(--gold)',
+                borderRadius: 'var(--radius)',
+                padding: '14px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+              }}
+            >
+              <span style={{ color: 'var(--gold-bright)', fontSize: 20, lineHeight: 1 }}>↻</span>
+              <div style={{ flex: 1 }}>
+                <div className="eyebrow" style={{ color: 'var(--gold)' }}>
+                  Partie en cours
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 2 }}>
+                  Vous pouvez rejoindre votre dernier salon{' '}
+                  <strong
+                    style={{ color: 'var(--gold-bright)', fontFamily: 'var(--font-mono)' }}
+                  >
+                    {lastCode}
+                  </strong>
+                  .
+                </div>
+              </div>
+              <Button variant="primary" onClick={handleResume}>
+                Reprendre →
+              </Button>
+              <button
+                onClick={dismissResume}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--ink-3)',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  padding: 4,
+                }}
+                title="Ignorer"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           <div
             style={{
