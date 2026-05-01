@@ -643,16 +643,13 @@ interface MyHandProps {
 }
 
 function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: MyHandProps) {
-  // Always render the original 4 base slots (indices 0..3). Holes stay as empty placeholders.
+  // Base hand always renders as a 2×2 square (slots #3 #4 on top, #1 #2 below).
+  // Penalty cards from failed snaps land in a horizontal row to the right so
+  // they grow sideways instead of stacking up into the table area.
   const grid2x2Order = [2, 3, 0, 1];
   const extras: number[] = [];
   for (let i = 4; i < handCount; i++) extras.push(i);
-  const hasExtras = extras.length > 0;
   const isHole = (i: number) => holes.includes(i);
-  // With penalty cards in play, drop the 2×2 base and lay everything out as a
-  // single horizontal row so nothing can overlap the table content above. The
-  // 2×2 layout stays the default for the standard 4-card hand.
-  const cardSize = hasExtras ? 'md' : 'lg';
 
   const renderCard = (i: number) => {
     const c = cards[i];
@@ -664,13 +661,13 @@ function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: M
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
       >
         {hole ? (
-          <EmptySlot size={cardSize} />
+          <EmptySlot size="lg" />
         ) : (
           <PlayingCard
             rank={c?.rank}
             suit={c?.suit}
             faceDown={!c}
-            size={cardSize}
+            size="lg"
             onClick={
               clickable
                 ? () => {
@@ -689,11 +686,12 @@ function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: M
     );
   };
 
-  if (hasExtras) {
-    const baseInOrder = [0, 1, 2, 3];
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 8 }}>{baseInOrder.map(renderCard)}</div>
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
+        {grid2x2Order.map(renderCard)}
+      </div>
+      {extras.length > 0 && (
         <div
           style={{
             display: 'flex',
@@ -704,13 +702,7 @@ function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: M
         >
           {extras.map(renderCard)}
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
-      {grid2x2Order.map(renderCard)}
+      )}
     </div>
   );
 }
