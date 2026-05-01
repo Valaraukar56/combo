@@ -261,13 +261,20 @@ export function setupSocketServer(io: Server): void {
       if (!room) return;
       room.markDisconnect(user.id, () => {
         broadcastRoomState(io, room);
-        if (room.players.filter((p) => p.connected || p.isBot).length === 0) {
+        if (roomIsAbandoned(room)) {
+          console.log(`[room] ${room.code} abandoned — deleting`);
           deleteRoom(room.code);
         }
       });
       broadcastRoomState(io, room);
     });
   });
+}
+
+/** A room is abandoned when no human player is still connected — bots alone
+ * don't count as anyone being there. */
+function roomIsAbandoned(room: Room): boolean {
+  return !room.players.some((p) => !p.isBot && p.connected);
 }
 
 /* ── Helpers ── */
@@ -299,7 +306,8 @@ function leaveRoom(io: Server, socket: Sock): void {
   if (inProgress) {
     room.markDisconnect(userId, () => {
       broadcastRoomState(io, room);
-      if (room.players.filter((p) => p.connected || p.isBot).length === 0) {
+      if (roomIsAbandoned(room)) {
+        console.log(`[room] ${room.code} abandoned — deleting`);
         deleteRoom(room.code);
       }
     });
@@ -308,7 +316,8 @@ function leaveRoom(io: Server, socket: Sock): void {
   }
 
   room.removePlayer(userId);
-  if (room.players.filter((p) => !p.isBot).length === 0) {
+  if (roomIsAbandoned(room)) {
+    console.log(`[room] ${room.code} empty — deleting`);
     deleteRoom(room.code);
   } else {
     broadcastRoomState(io, room);
