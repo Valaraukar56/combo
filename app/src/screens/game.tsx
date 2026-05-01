@@ -644,10 +644,15 @@ interface MyHandProps {
 
 function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: MyHandProps) {
   // Always render the original 4 base slots (indices 0..3). Holes stay as empty placeholders.
-  const orderedIndices = [2, 3, 0, 1];
+  const grid2x2Order = [2, 3, 0, 1];
   const extras: number[] = [];
   for (let i = 4; i < handCount; i++) extras.push(i);
+  const hasExtras = extras.length > 0;
   const isHole = (i: number) => holes.includes(i);
+  // With penalty cards in play, drop the 2×2 base and lay everything out as a
+  // single horizontal row so nothing can overlap the table content above. The
+  // 2×2 layout stays the default for the standard 4-card hand.
+  const cardSize = hasExtras ? 'md' : 'lg';
 
   const renderCard = (i: number) => {
     const c = cards[i];
@@ -659,13 +664,13 @@ function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: M
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
       >
         {hole ? (
-          <EmptySlot size="lg" />
+          <EmptySlot size={cardSize} />
         ) : (
           <PlayingCard
             rank={c?.rank}
             suit={c?.suit}
             faceDown={!c}
-            size="lg"
+            size={cardSize}
             onClick={
               clickable
                 ? () => {
@@ -684,24 +689,28 @@ function MyHand({ cards, holes, handCount, canSwap, canSnap, onSwap, onSnap }: M
     );
   };
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
-        {orderedIndices.map(renderCard)}
-      </div>
-      {extras.length > 0 && (
+  if (hasExtras) {
+    const baseInOrder = [0, 1, 2, 3];
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8 }}>{baseInOrder.map(renderCard)}</div>
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr',
+            display: 'flex',
             gap: 8,
-            paddingLeft: 8,
+            paddingLeft: 10,
             borderLeft: '1.5px dashed var(--crimson)',
           }}
         >
           {extras.map(renderCard)}
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
+      {grid2x2Order.map(renderCard)}
     </div>
   );
 }
