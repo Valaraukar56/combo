@@ -379,23 +379,28 @@ function finalizeAndPersist(io: Server, room: Room): void {
   const summary = room.perPlayerSummary();
   // Lowest cumulative total wins. Ties: every player at the lowest score is a winner.
   const minScore = summary.length > 0 ? Math.min(...summary.map((p) => p.totalScore)) : 0;
-  try {
-    recordGameOutcome({
-      mode: room.config.isSolo ? 'solo' : 'multi',
-      roundsCount: room.config.rounds,
-      finishedAt: Date.now(),
-      players: summary.map((p) => ({
-        userId: p.id,
-        pseudo: p.pseudo,
-        finalScore: p.totalScore,
-        isWinner: p.totalScore === minScore,
-        combosCalled: p.combosCalled,
-        combosWon: p.combosWon,
-        snapsFailed: p.snapsFailed,
-      })),
-    });
-  } catch (err) {
-    console.error('[stats] failed to record game outcome', err);
+  // Solo games (vs bots) are training, not ranked — skip persistence entirely.
+  if (room.config.isSolo) {
+    console.log(`[stats] skipping solo game (training mode, not recorded)`);
+  } else {
+    try {
+      recordGameOutcome({
+        mode: 'multi',
+        roundsCount: room.config.rounds,
+        finishedAt: Date.now(),
+        players: summary.map((p) => ({
+          userId: p.id,
+          pseudo: p.pseudo,
+          finalScore: p.totalScore,
+          isWinner: p.totalScore === minScore,
+          combosCalled: p.combosCalled,
+          combosWon: p.combosWon,
+          snapsFailed: p.snapsFailed,
+        })),
+      });
+    } catch (err) {
+      console.error('[stats] failed to record game outcome', err);
+    }
   }
   io.to(roomChannel(room.code)).emit('game:end', { results: final });
   broadcastRoomState(io, room);
