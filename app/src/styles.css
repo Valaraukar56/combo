@@ -437,6 +437,10 @@ body {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+@keyframes memorize-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
 .fade-in { animation: fade-in var(--t-slow) ease-out; }
 .fade-in-scale { animation: fade-in-scale var(--t-spring) ease-out; }
 .slide-up { animation: slide-up var(--t-slow) ease-out; }

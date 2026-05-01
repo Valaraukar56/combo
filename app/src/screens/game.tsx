@@ -7,24 +7,24 @@ import { useGame, type PublicPlayer } from '../lib/game';
 import type { Card } from '../types';
 
 /* ──────── Memorize phase ──────── */
+const MEMORIZE_DURATION_MS = 6000;
+
 export function MemorizeScreen() {
   const { roomState, privateHand } = useGame();
-  const [progress, setProgress] = useState(100);
+  const [secondsLeft, setSecondsLeft] = useState(Math.ceil(MEMORIZE_DURATION_MS / 1000));
 
-  // Drive a 6-second visual countdown locally; phase is server-controlled.
+  // Per-second countdown label; the bar itself runs as a pure CSS animation
+  // (scaleX 1 → 0 over 6s) so it can't get throttled by JS-render hiccups.
   useEffect(() => {
     if (roomState?.phase !== 'memorize') return;
-    setProgress(100);
     const start = Date.now();
-    let raf = 0;
-    const tick = () => {
-      const elapsed = Date.now() - start;
-      const p = Math.max(0, 100 - (elapsed / 6000) * 100);
-      setProgress(p);
-      if (p > 0) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    setSecondsLeft(Math.ceil(MEMORIZE_DURATION_MS / 1000));
+    const id = setInterval(() => {
+      const remaining = Math.max(0, MEMORIZE_DURATION_MS - (Date.now() - start));
+      setSecondsLeft(Math.ceil(remaining / 1000));
+      if (remaining <= 0) clearInterval(id);
+    }, 250);
+    return () => clearInterval(id);
   }, [roomState?.phase]);
 
   if (!roomState) return null;
@@ -114,25 +114,42 @@ export function MemorizeScreen() {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 8,
+            gap: 10,
           }}
         >
-          <div className="eyebrow">Temps restant</div>
+          <div
+            className="eyebrow"
+            style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}
+          >
+            <span>Temps restant</span>
+            <span
+              style={{
+                color: 'var(--gold-bright)',
+                fontFamily: 'var(--font-mono)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {secondsLeft}s
+            </span>
+          </div>
           <div
             style={{
               width: '100%',
-              height: 4,
+              height: 8,
               background: 'rgba(0,0,0,0.4)',
-              borderRadius: 2,
+              border: '1px solid var(--border)',
+              borderRadius: 4,
               overflow: 'hidden',
             }}
           >
             <div
+              key={roomState.round}
               style={{
-                width: progress + '%',
+                width: '100%',
                 height: '100%',
                 background: 'linear-gradient(90deg, var(--gold-bright), var(--gold))',
-                transition: 'width 80ms linear',
+                transformOrigin: 'left center',
+                animation: `memorize-countdown ${MEMORIZE_DURATION_MS}ms linear forwards`,
               }}
             />
           </div>
