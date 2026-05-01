@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useToast } from '../components/Toast';
 import { useAuth } from './auth';
 import { clearLastRoomCode, saveLastRoomCode } from './roomCode';
 import { ensureConnected } from './socket';
@@ -73,6 +74,9 @@ export interface GameEvent {
   card?: Card;
   powerType?: 'self-peek' | 'opponent-peek' | 'swap' | null;
   idx?: number;
+  targetId?: string;
+  selfIdx?: number;
+  targetIdx?: number;
   success?: boolean;
   fromDiscard?: boolean;
 }
@@ -138,6 +142,7 @@ const GameContext = createContext<GameContextValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const toast = useToast();
   const [connected, setConnected] = useState(false);
   const [roomState, setRoomState] = useState<RoomStatePayload | null>(null);
   const [privateHand, setPrivateHand] = useState<(Card | null)[]>([]);
@@ -152,6 +157,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<GameEvent[]>([]);
   const userIdRef = useRef<string | null>(user?.id ?? null);
   userIdRef.current = user?.id ?? null;
+  // Keep an up-to-date snapshot of roomState for use inside socket callbacks,
+  // which capture state at registration time and would otherwise see stale data.
+  const roomStateRef = useRef<RoomStatePayload | null>(roomState);
+  roomStateRef.current = roomState;
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   useEffect(() => {
     if (!user) return;
@@ -197,6 +208,39 @@ export function GameProvider({ children }: { children: ReactNode }) {
           success: !!ev.success,
           card: ev.card ?? null,
         });
+      }
+      if (ev.type === 'opponent-peek-resolved' || ev.type === 'swap-resolved') {
+        const room = roomStateRef.current;
+        const t = toastRef.current;
+        if (!room) return;
+        const actor = room.players.find((p) => p.id === ev.actorId);
+        const target = room.players.find((p) => p.id === ev.targetId);
+        if (!actor) return;
+        if (ev.type === 'opponent-peek-resolved') {
+          const slot = (ev.targetIdx ?? 0) + 1;
+          if (ev.targetId === myId) {
+            t.push(`👁  ${actor.pseudo} a regardé votre carte #${slot}`, 'default');
+          } else if (ev.actorId !== myId && target) {
+            t.push(
+              `👁  ${actor.pseudo} a regardé la #${slot} de ${target.pseudo}`,
+              'default'
+            );
+          }
+        } else if (ev.type === 'swap-resolved') {
+          const selfSlot = (ev.selfIdx ?? 0) + 1;
+          const targetSlot = (ev.targetIdx ?? 0) + 1;
+          if (ev.targetId === myId) {
+            t.push(
+              `🔄 ${actor.pseudo} a échangé sa #${selfSlot} avec votre #${targetSlot}`,
+              'default'
+            );
+          } else if (ev.actorId !== myId && target) {
+            t.push(
+              `🔄 ${actor.pseudo} a échangé sa #${selfSlot} avec la #${targetSlot} de ${target.pseudo}`,
+              'default'
+            );
+          }
+        }
       }
     };
 

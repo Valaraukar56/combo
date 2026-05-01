@@ -169,6 +169,13 @@ export function setupSocketServer(io: Server): void {
           card: result.card,
           source: 'opponent',
         });
+        // Let everyone (esp. the target) know which slot was peeked.
+        io.to(roomChannel(room.code)).emit('game:event', {
+          type: 'opponent-peek-resolved',
+          actorId: user.id,
+          targetId: data?.targetId,
+          targetIdx: data?.idx,
+        });
         setTimeout(() => finishPower(io, room), POWER_REVEAL_HOLD_MS);
         ack?.({ ok: true });
       }
@@ -186,6 +193,15 @@ export function setupSocketServer(io: Server): void {
           Number(data?.targetIdx ?? -1)
         );
         if (!result.ok) return ack?.({ ok: false, error: result.error });
+        // Let everyone know which slot was swapped (the hand counts also change
+        // via roomState, but this carries the exact indexes).
+        io.to(roomChannel(room.code)).emit('game:event', {
+          type: 'swap-resolved',
+          actorId: user.id,
+          targetId: data?.targetId,
+          selfIdx: data?.selfIdx,
+          targetIdx: data?.targetIdx,
+        });
         finishPower(io, room);
         ack?.({ ok: true });
       }
@@ -510,12 +526,34 @@ function autoResolveBotPower(
       if (me) room.resolveSelfPeek(botId, pickSlot(me.hand));
     } else if (type === 'opponent-peek') {
       const opp = room.players.find((p) => p.id !== botId);
-      if (opp) room.resolveOpponentPeek(botId, opp.id, pickSlot(opp.hand));
+      if (opp) {
+        const idx = pickSlot(opp.hand);
+        const result = room.resolveOpponentPeek(botId, opp.id, idx);
+        if (result.ok) {
+          io.to(roomChannel(room.code)).emit('game:event', {
+            type: 'opponent-peek-resolved',
+            actorId: botId,
+            targetId: opp.id,
+            targetIdx: idx,
+          });
+        }
+      }
     } else {
       const opp = room.players.find((p) => p.id !== botId);
       const me = room.players.find((p) => p.id === botId);
       if (opp && me) {
-        room.resolveSwap(botId, pickSlot(me.hand), opp.id, pickSlot(opp.hand));
+        const selfIdx = pickSlot(me.hand);
+        const targetIdx = pickSlot(opp.hand);
+        const result = room.resolveSwap(botId, selfIdx, opp.id, targetIdx);
+        if (result.ok) {
+          io.to(roomChannel(room.code)).emit('game:event', {
+            type: 'swap-resolved',
+            actorId: botId,
+            targetId: opp.id,
+            selfIdx,
+            targetIdx,
+          });
+        }
       }
     }
     finishPower(io, room);
