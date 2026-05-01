@@ -63,6 +63,13 @@ db.exec(`
   }
 }
 
+// Backfill user_stats rows for any existing user that doesn't have one
+// (legacy users registered before user_stats was inserted on signup).
+db.exec(`
+  INSERT OR IGNORE INTO user_stats (user_id)
+  SELECT id FROM users
+`);
+
 export interface UserRow {
   id: string;
   pseudo: string;
@@ -113,6 +120,7 @@ export const userQueries = {
 
 export const statsQueries = {
   byUserId: db.prepare('SELECT * FROM user_stats WHERE user_id = ?'),
+  ensureRow: db.prepare('INSERT OR IGNORE INTO user_stats (user_id) VALUES (?)'),
   // We award games_won only when this user has the lowest score AND played a real game.
   applyResult: db.prepare(`
     UPDATE user_stats

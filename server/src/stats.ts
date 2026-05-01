@@ -65,6 +65,9 @@ export function recordGameOutcome(outcome: GameOutcome): void {
         p.combosWon,
         p.snapsFailed
       );
+      // Make sure the user_stats row exists before the UPDATE (covers legacy
+      // users created before user_stats was inserted on signup).
+      statsQueries.ensureRow.run(p.userId);
       statsQueries.applyResult.run(
         p.isWinner ? 1 : 0,
         p.combosCalled,
@@ -76,6 +79,9 @@ export function recordGameOutcome(outcome: GameOutcome): void {
       );
     }
     db.exec('COMMIT');
+    console.log(
+      `[stats] recorded game ${gameId} (${outcome.mode}, ${humans.length} human player(s))`
+    );
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
