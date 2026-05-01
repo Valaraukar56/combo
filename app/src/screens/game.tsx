@@ -341,7 +341,9 @@ export function GameTableScreen() {
             )}
           </div>
           <div style={{ fontSize: 11, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>
-            {phase === 'snap-window' ? <span style={{ color: 'var(--crimson)' }}>SNAP ?</span> : '—'}
+            <span style={{ color: 'var(--crimson)' }}>
+              {phase === 'snap-window' ? 'SNAP !' : 'SNAP ?'}
+            </span>
           </div>
         </div>
       </div>
@@ -393,7 +395,7 @@ export function GameTableScreen() {
             holes={privateHoles}
             handCount={me.handCount}
             canSwap={isMyTurn && phase === 'turn' && !!drawnCard}
-            canSnap={phase === 'snap-window'}
+            canSnap={phase === 'turn' || phase === 'snap-window' || phase === 'combo-final'}
             onSwap={(idx) => tryAction(() => swap(idx))}
             onSnap={(idx) => tryAction(() => snap(idx))}
           />
@@ -430,8 +432,7 @@ export function GameTableScreen() {
             </em>
           </Button>
           <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', maxWidth: 240, textAlign: 'right' }}>
-            ⚡ Snap : cliquez sur une carte de votre main quand{' '}
-            <span style={{ color: 'var(--crimson)' }}>SNAP ?</span> est affiché
+            ⚡ Snap : cliquez sur une carte de votre main qui matche la défausse
           </span>
         </div>
       </div>
@@ -772,9 +773,9 @@ function RulesQuickRef({ onClose }: { onClose: () => void }) {
         <div style={{ display: 'flex', gap: 12 }}>
           <span style={{ color: 'var(--crimson)' }}>!</span>
           <span>
-            <strong style={{ color: 'var(--ink)' }}>Snap :</strong> pendant la fenêtre Snap (3s),
-            cliquez sur une de vos cartes du même rang que la défausse pour la jeter. Raté = +1
-            carte.
+            <strong style={{ color: 'var(--ink)' }}>Snap :</strong> à tout moment pendant la
+            partie, cliquez sur une de vos cartes du même rang que la défausse pour la jeter. Raté
+            = +1 carte.
           </span>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>

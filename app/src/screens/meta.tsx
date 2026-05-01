@@ -55,7 +55,7 @@ export function RulesScreen({ onNavigate }: NavProps) {
             <RuleCard
               num="3"
               title="Snap (claque)"
-              body="Pendant la fenêtre Snap (3s) après une défausse, vous pouvez défausser une de vos cartes du même rang. Réussi = elle disparaît. Raté = +1 carte de pénalité."
+              body="À tout moment pendant la partie, vous pouvez défausser une de vos cartes du même rang que la défausse. Réussi = elle disparaît. Raté = +1 carte de pénalité."
             />
             <RuleCard
               num="4"

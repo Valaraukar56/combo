@@ -342,7 +342,10 @@ export class Room {
     playerId: string,
     cardIdx: number
   ): { ok: boolean; success: boolean; card?: Card; error?: string } {
-    if (this.phase !== 'snap-window') return { ok: false, success: false, error: 'wrong_phase' };
+    const snappable: RoomPhase[] = ['turn', 'snap-window', 'power', 'combo-final'];
+    if (!snappable.includes(this.phase)) {
+      return { ok: false, success: false, error: 'wrong_phase' };
+    }
     const player = this.players.find((p) => p.id === playerId);
     if (!player) return { ok: false, success: false, error: 'unknown_player' };
     if (cardIdx < 0 || cardIdx >= player.hand.length) {
