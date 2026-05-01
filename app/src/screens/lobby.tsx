@@ -58,7 +58,7 @@ export function LobbyScreen({ onNavigate }: NavProps) {
   };
 
   const handleSolo = () => {
-    handleCreate({ maxPlayers: 4, rounds: 5, isPrivate: true, isSolo: true });
+    handleCreate({ maxPlayers: 4, rounds: 1, isPrivate: true, isSolo: true });
   };
 
   return (

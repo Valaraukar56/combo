@@ -298,11 +298,13 @@ function leaveRoom(io: Server, socket: Sock): void {
 }
 
 function normalizeConfig(cfg: Partial<RoomConfig>): RoomConfig {
+  const isSolo = !!cfg.isSolo;
   return {
     maxPlayers: clamp(Number(cfg.maxPlayers ?? 4), 2, 4),
-    rounds: clamp(Number(cfg.rounds ?? 5), 1, 10),
+    // Solo (vs IA) is locked to a single round — it's a quick training mode.
+    rounds: isSolo ? 1 : clamp(Number(cfg.rounds ?? 5), 1, 10),
     isPrivate: cfg.isPrivate !== false,
-    isSolo: !!cfg.isSolo,
+    isSolo,
   };
 }
 
