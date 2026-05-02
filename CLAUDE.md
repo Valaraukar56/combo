@@ -21,6 +21,7 @@ npm run typecheck        # tsc --noEmit seulement
 npm run electron:package # build + packager portable Windows (release/Combo-win32-x64/)
 npm run electron:build   # build + installateur NSIS (nécessite droits admin Windows)
 npm run electron:preview # build + ouvre dans Electron sans installer
+npm run electron:publish # build + publie sur GitHub Releases (auto-update)
 ```
 
 ### Serveur (`server/`)
@@ -112,6 +113,20 @@ La mécanique **snap** : après chaque discard/swap, une fenêtre de 3s s'ouvre.
 ### Electron (app/electron/main.cjs)
 
 Charge `dist/index.html` en `file://`. Le `.cjs` est nécessaire car `app/package.json` a `"type": "module"`. La config `base: './'` dans `vite.config.ts` est essentielle pour que les assets (`./assets/...`) soient résolvables depuis `file://`.
+
+### Auto-update (electron-updater)
+
+Les mises à jour sont distribuées via **GitHub Releases** (repo `Valaraukar56/combo`). Au démarrage, l'app vérifie silencieusement s'il y a une nouvelle version. Si oui, elle télécharge en arrière-plan et propose un redémarrage via une dialog.
+
+**Pour publier une nouvelle version :**
+1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`)
+2. Lancer dans PowerShell (droits admin) :
+```powershell
+$env:GH_TOKEN="ton_token_github"
+cd "D:\PROJET CODE TA MERE\COMBO\app"
+npm run electron:publish
+```
+Le token GitHub doit avoir les permissions `repo`. Ne jamais le commiter.
 
 ## Points d'attention
 
