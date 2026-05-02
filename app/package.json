@@ -12,7 +12,7 @@
     "electron:preview": "npm run build && electron .",
     "electron:package": "npm run build && electron-packager . Combo --platform=win32 --arch=x64 --out=release --overwrite --ignore=node_modules --ignore=src --ignore=release --ignore=.env",
     "electron:build": "npm run build && electron-builder",
-    "electron:publish": "npm run build && electron-builder --publish always"
+    "electron:publish": "npm run build && node scripts/publish.cjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
