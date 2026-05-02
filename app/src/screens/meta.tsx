@@ -712,11 +712,6 @@ function EmptyState({ title, sub }: { title: string; sub: string }) {
 /* ──────── Settings ──────── */
 export function SettingsScreen({ onNavigate }: NavProps) {
   const { user, logout } = useAuth();
-  const [sound, setSound] = useState(true);
-  const [music, setMusic] = useState(false);
-  const [notifs, setNotifs] = useState(true);
-  const [animations, setAnimations] = useState(true);
-  const [lang, setLang] = useState('fr');
   const toast = useToast();
 
   if (!user) return null;
@@ -737,67 +732,6 @@ export function SettingsScreen({ onNavigate }: NavProps) {
               maxWidth: 640,
             }}
           >
-            <SettingsGroup title="Son">
-              <Toggle
-                label="Effets sonores"
-                checked={sound}
-                onChange={setSound}
-                sub="Cartes, snaps, pouvoirs"
-              />
-              <Toggle
-                label="Musique d'ambiance"
-                checked={music}
-                onChange={setMusic}
-                sub="Boucle d'ambiance feutrée"
-              />
-            </SettingsGroup>
-            <SettingsGroup title="Affichage">
-              <Toggle
-                label="Animations"
-                checked={animations}
-                onChange={setAnimations}
-                sub="Flips de cartes, transitions"
-              />
-              <Toggle
-                label="Notifications de partie"
-                checked={notifs}
-                onChange={setNotifs}
-                sub="Sons et toasts in-game"
-              />
-            </SettingsGroup>
-            <SettingsGroup title="Langue">
-              <div
-                style={{
-                  padding: '14px 16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>Langue de l'interface</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2 }}>
-                    Français · English
-                  </div>
-                </div>
-                <select
-                  value={lang}
-                  onChange={(e) => setLang(e.target.value)}
-                  style={{
-                    background: 'var(--bg-deep)',
-                    border: '1.5px solid var(--border-strong)',
-                    color: 'var(--ink)',
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 14,
-                  }}
-                >
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-            </SettingsGroup>
             <SettingsGroup title="Compte">
               <div
                 style={{
@@ -854,54 +788,3 @@ function SettingsGroup({ title, children }: { title: string; children: ReactNode
   );
 }
 
-interface ToggleProps {
-  label: string;
-  sub?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}
-
-function Toggle({ label, sub, checked, onChange }: ToggleProps) {
-  return (
-    <div
-      style={{
-        padding: '14px 16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}
-    >
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 500 }}>{label}</div>
-        {sub && <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2 }}>{sub}</div>}
-      </div>
-      <button
-        onClick={() => onChange(!checked)}
-        style={{
-          width: 42,
-          height: 24,
-          borderRadius: 12,
-          background: checked ? 'var(--gold)' : 'var(--border-strong)',
-          border: 'none',
-          position: 'relative',
-          cursor: 'pointer',
-          transition: 'background var(--t-fast)',
-        }}
-      >
-        <span
-          style={{
-            position: 'absolute',
-            top: 2,
-            left: checked ? 20 : 2,
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            background: 'var(--paper)',
-            transition: 'left var(--t-fast)',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        />
-      </button>
-    </div>
-  );
-}
