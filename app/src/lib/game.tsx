@@ -90,6 +90,20 @@ export interface RevealEvent {
 
 export type PowerType = 'self-peek' | 'opponent-peek' | 'swap';
 
+/**
+ * One-shot announcement shown as a fullscreen overlay (similar to the COMBO
+ * call) whenever an opponent uses Q♥ or K♥. The `id` lets the overlay
+ * re-mount even when the same actor triggers two consecutive powers.
+ */
+export interface PowerAnnouncement {
+  id: number;
+  kind: 'peek-on-me' | 'peek-on-other' | 'swap-on-me' | 'swap-on-other';
+  actorPseudo: string;
+  targetPseudo?: string;
+  selfSlot?: number;
+  targetSlot: number;
+}
+
 interface AckResponse {
   ok: boolean;
   [k: string]: unknown;
@@ -114,6 +128,7 @@ interface GameContextValue {
   pendingPower: { rank: string; type: PowerType } | null;
   lastReveal: RevealEvent | null;
   lastSnap: { actorId: string; success: boolean; card: Card | null } | null;
+  powerAnnouncement: PowerAnnouncement | null;
   roundResults: RoundResult[] | null;
   finalResults: RoundResult[] | null;
   events: GameEvent[];
@@ -136,6 +151,7 @@ interface GameContextValue {
   triggerDevPower: (rank: 'J' | 'Q' | 'K') => Promise<void>;
   clearReveal: () => void;
   clearSnap: () => void;
+  clearPowerAnnouncement: () => void;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -152,6 +168,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [pendingPower, setPendingPower] = useState<{ rank: string; type: PowerType } | null>(null);
   const [lastReveal, setLastReveal] = useState<RevealEvent | null>(null);
   const [lastSnap, setLastSnap] = useState<{ actorId: string; success: boolean; card: Card | null } | null>(null);
+  const [powerAnnouncement, setPowerAnnouncement] = useState<PowerAnnouncement | null>(null);
+  const announcementIdRef = useRef(0);
   const [roundResults, setRoundResults] = useState<RoundResult[] | null>(null);
   const [finalResults, setFinalResults] = useState<RoundResult[] | null>(null);
   const [events, setEvents] = useState<GameEvent[]>([]);
@@ -221,34 +239,54 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
       if (ev.type === 'opponent-peek-resolved' || ev.type === 'swap-resolved') {
         const room = roomStateRef.current;
-        const t = toastRef.current;
         if (!room) return;
         const actor = room.players.find((p) => p.id === ev.actorId);
         const target = room.players.find((p) => p.id === ev.targetId);
         if (!actor) return;
+        // The actor already sees the result through the power UI — only show
+        // the big overlay to the targeted player and to bystanders.
+        const nextAnnouncement = (a: PowerAnnouncement) => {
+          announcementIdRef.current += 1;
+          setPowerAnnouncement({ ...a, id: announcementIdRef.current });
+        };
         if (ev.type === 'opponent-peek-resolved') {
           const slot = (ev.targetIdx ?? 0) + 1;
           if (ev.targetId === myId) {
-            t.push(`👁  ${actor.pseudo} a regardé votre carte #${slot}`, 'default');
+            nextAnnouncement({
+              id: 0,
+              kind: 'peek-on-me',
+              actorPseudo: actor.pseudo,
+              targetSlot: slot,
+            });
           } else if (ev.actorId !== myId && target) {
-            t.push(
-              `👁  ${actor.pseudo} a regardé la #${slot} de ${target.pseudo}`,
-              'default'
-            );
+            nextAnnouncement({
+              id: 0,
+              kind: 'peek-on-other',
+              actorPseudo: actor.pseudo,
+              targetPseudo: target.pseudo,
+              targetSlot: slot,
+            });
           }
         } else if (ev.type === 'swap-resolved') {
           const selfSlot = (ev.selfIdx ?? 0) + 1;
           const targetSlot = (ev.targetIdx ?? 0) + 1;
           if (ev.targetId === myId) {
-            t.push(
-              `🔄 ${actor.pseudo} a échangé sa #${selfSlot} avec votre #${targetSlot}`,
-              'default'
-            );
+            nextAnnouncement({
+              id: 0,
+              kind: 'swap-on-me',
+              actorPseudo: actor.pseudo,
+              selfSlot,
+              targetSlot,
+            });
           } else if (ev.actorId !== myId && target) {
-            t.push(
-              `🔄 ${actor.pseudo} a échangé sa #${selfSlot} avec la #${targetSlot} de ${target.pseudo}`,
-              'default'
-            );
+            nextAnnouncement({
+              id: 0,
+              kind: 'swap-on-other',
+              actorPseudo: actor.pseudo,
+              targetPseudo: target.pseudo,
+              selfSlot,
+              targetSlot,
+            });
           }
         }
       }
@@ -302,6 +340,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     pendingPower,
     lastReveal,
     lastSnap,
+    powerAnnouncement,
     roundResults,
     finalResults,
     events,
@@ -323,6 +362,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setDrawnCard(null);
       setRoundResults(null);
       setFinalResults(null);
+      setPowerAnnouncement(null);
     },
     setReady: async (ready) => {
       await emit('room:ready', { ready });
@@ -376,6 +416,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     },
     clearReveal: () => setLastReveal(null),
     clearSnap: () => setLastSnap(null),
+    clearPowerAnnouncement: () => setPowerAnnouncement(null),
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

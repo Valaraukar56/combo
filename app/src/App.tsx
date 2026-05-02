@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DevNav } from './components/DevNav';
 import { DisconnectBanner } from './components/DisconnectBanner';
+import { PowerAnnouncementOverlay } from './components/PowerAnnouncementOverlay';
 import { UpdateBanner } from './components/UpdateBanner';
 import { useAuth } from './lib/auth';
 import { useGame } from './lib/game';
@@ -103,6 +104,7 @@ export function AppShell() {
         <>
           {inner}
           <DisconnectBanner />
+          <PowerAnnouncementOverlay />
           {showSnap && <SnapResolutionScreen />}
           {user.isAdmin && <DevNav onJump={setPage} />}
         </>
