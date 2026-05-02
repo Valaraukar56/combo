@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DevNav } from './components/DevNav';
 import { DisconnectBanner } from './components/DisconnectBanner';
+import { UpdateBanner } from './components/UpdateBanner';
 import { useAuth } from './lib/auth';
 import { useGame } from './lib/game';
 import { HomeScreen, LoginScreen, RegisterScreen } from './screens/auth';
@@ -60,72 +61,84 @@ export function AppShell() {
 
   if (!hydrated) return null;
 
-  // Anonymous routes
-  if (!user) {
-    switch (page) {
-      case 'login':
-        return <LoginScreen onNavigate={setPage} />;
-      case 'register':
-        return <RegisterScreen onNavigate={setPage} />;
-      case 'home':
-      default:
-        return <HomeScreen onNavigate={setPage} />;
-    }
-  }
-
-  // Authenticated — if in a room, route by phase
-  if (roomState) {
-    const inner = (() => {
-      switch (roomState.phase) {
-        case 'waiting':
-          return <WaitingRoomScreen />;
-        case 'memorize':
-          return <MemorizeScreen />;
-        case 'power':
-          return <PowerScreen />;
-        case 'round-end':
-          return <EndRoundScreen />;
-        case 'game-end':
-          return <EndGameScreen onBackLobby={() => setPage('lobby')} />;
-        case 'turn':
-        case 'snap-window':
-        case 'combo-final':
+  // Pick the active screen + any contextual overlays. UpdateBanner is mounted
+  // once at the bottom regardless of where the user is — the auto-update flow
+  // must always be reachable.
+  const content = (() => {
+    // Anonymous routes
+    if (!user) {
+      switch (page) {
+        case 'login':
+          return <LoginScreen onNavigate={setPage} />;
+        case 'register':
+          return <RegisterScreen onNavigate={setPage} />;
+        case 'home':
         default:
-          return <GameTableScreen />;
+          return <HomeScreen onNavigate={setPage} />;
+      }
+    }
+
+    // Authenticated — if in a room, route by phase
+    if (roomState) {
+      const inner = (() => {
+        switch (roomState.phase) {
+          case 'waiting':
+            return <WaitingRoomScreen />;
+          case 'memorize':
+            return <MemorizeScreen />;
+          case 'power':
+            return <PowerScreen />;
+          case 'round-end':
+            return <EndRoundScreen />;
+          case 'game-end':
+            return <EndGameScreen onBackLobby={() => setPage('lobby')} />;
+          case 'turn':
+          case 'snap-window':
+          case 'combo-final':
+          default:
+            return <GameTableScreen />;
+        }
+      })();
+      return (
+        <>
+          {inner}
+          <DisconnectBanner />
+          {showSnap && <SnapResolutionScreen />}
+          {user.isAdmin && <DevNav onJump={setPage} />}
+        </>
+      );
+    }
+
+    // Authenticated and not in a room: meta pages
+    const metaInner = (() => {
+      switch (page) {
+        case 'rules':
+          return <RulesScreen onNavigate={setPage} />;
+        case 'leaderboard':
+          return <LeaderboardScreen onNavigate={setPage} />;
+        case 'history':
+          return <HistoryScreen onNavigate={setPage} />;
+        case 'profile':
+          return <ProfileScreen onNavigate={setPage} />;
+        case 'settings':
+          return <SettingsScreen onNavigate={setPage} />;
+        case 'lobby':
+        default:
+          return <LobbyScreen onNavigate={setPage} />;
       }
     })();
     return (
       <>
-        {inner}
-        <DisconnectBanner />
-        {showSnap && <SnapResolutionScreen />}
+        {metaInner}
         {user.isAdmin && <DevNav onJump={setPage} />}
       </>
     );
-  }
-
-  // Authenticated and not in a room: meta pages
-  const metaInner = (() => {
-    switch (page) {
-      case 'rules':
-        return <RulesScreen onNavigate={setPage} />;
-      case 'leaderboard':
-        return <LeaderboardScreen onNavigate={setPage} />;
-      case 'history':
-        return <HistoryScreen onNavigate={setPage} />;
-      case 'profile':
-        return <ProfileScreen onNavigate={setPage} />;
-      case 'settings':
-        return <SettingsScreen onNavigate={setPage} />;
-      case 'lobby':
-      default:
-        return <LobbyScreen onNavigate={setPage} />;
-    }
   })();
+
   return (
     <>
-      {metaInner}
-      {user.isAdmin && <DevNav onJump={setPage} />}
+      {content}
+      <UpdateBanner />
     </>
   );
 }
