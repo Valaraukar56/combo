@@ -1,6 +1,10 @@
+import pkg from '../../package.json';
 import type { User } from '../types';
 
 const TOKEN_KEY = 'combo_token';
+/** Set at build time from package.json. Sent on every API call and socket
+ *  handshake so the server can refuse anything older than the latest release. */
+export const APP_VERSION = pkg.version;
 
 export function getToken(): string | null {
   try {
@@ -40,6 +44,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
     ...((opts.headers as Record<string, string>) ?? {}),
   };
   if (DESKTOP_CLIENT_SECRET) headers['X-Combo-Client'] = DESKTOP_CLIENT_SECRET;
+  headers['X-Combo-Version'] = APP_VERSION;
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${BASE_URL}${path}`, { ...opts, headers });
