@@ -53,7 +53,7 @@ export function DevNav({ onJump }: DevNavProps) {
     <div
       style={{
         position: 'fixed',
-        bottom: 16,
+        bottom: 80,
         left: 16,
         zIndex: 9999,
         fontFamily: 'var(--font-body)',
