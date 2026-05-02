@@ -25,6 +25,8 @@ export class ApiError extends Error {
   }
 }
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -32,7 +34,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(path, { ...opts, headers });
+  const res = await fetch(`${BASE_URL}${path}`, { ...opts, headers });
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
     throw new ApiError(res.status, data.error ?? 'request_failed', data.message ?? data.error);

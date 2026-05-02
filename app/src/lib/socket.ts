@@ -5,7 +5,7 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io({
+    socket = io(import.meta.env.VITE_API_URL ?? '', {
       autoConnect: false,
       auth: (cb: (data: { token: string | null }) => void) => cb({ token: getToken() }),
       reconnectionDelay: 500,
