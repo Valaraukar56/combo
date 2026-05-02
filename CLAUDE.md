@@ -1,0 +1,103 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with this repository.
+
+## Monorepo Structure
+
+Two independent packages — always `cd` into the right one before running commands:
+
+| Dossier | Rôle |
+|---|---|
+| `app/` | Frontend React + Electron desktop client |
+| `server/` | Backend Node.js (Express + Socket.IO + SQLite) |
+
+## Commands
+
+### Frontend (`app/`)
+```bash
+npm run dev              # Vite dev server on :5173 (proxies /api et /socket.io vers :3001)
+npm run build            # tsc + vite build → dist/
+npm run typecheck        # tsc --noEmit seulement
+npm run electron:package # build + packager portable Windows (release/Combo-win32-x64/)
+npm run electron:build   # build + installateur NSIS (nécessite droits admin Windows)
+npm run electron:preview # build + ouvre dans Electron sans installer
+```
+
+### Serveur (`server/`)
+```bash
+npm run dev              # tsx watch avec --experimental-sqlite (hot reload)
+npm run build            # tsc → dist/
+npm run start            # node --experimental-sqlite dist/index.js (prod)
+npm run typecheck        # tsc --noEmit
+```
+
+## Environment Variables
+
+### `server/.env`
+```
+PORT=3001
+JWT_SECRET=<secret obligatoire en prod>
+DB_PATH=./data/combo.db
+CORS_ORIGIN=http://localhost:5173
+NODE_ENV=development
+```
+En production, `JWT_SECRET` manquant fait crasher le serveur au démarrage (voulu).
+
+### `app/.env.production`
+```
+VITE_API_URL=https://51.68.129.168.sslip.io
+```
+En dev, `VITE_API_URL` est vide — le proxy Vite prend le relais vers `:3001`.
+
+## Architecture
+
+### Flux de données global
+
+```
+Client React/Electron
+  ├── REST (fetch) → /api/auth/*, /api/stats/*    (auth, stats, leaderboard)
+  └── WebSocket (Socket.IO) → tous les events de jeu en temps réel
+```
+
+Tout l'état de jeu vivant est **server-authoritative** : le serveur est la seule source de vérité. Le client ne fait que refléter ce que le serveur envoie.
+
+### Backend — fichiers clés
+
+- **`server/src/room.ts`** — La classe `Room` contient toute la logique de jeu : deal, draw, swap, discard, snap, combo, scoring, gestion des timers (snap window 3s, memorize 6s, power timeout 20s, reconnect grace 30s). C'est le cœur du jeu.
+- **`server/src/socket.ts`** — Câble les événements Socket.IO aux méthodes de `Room`. Gère aussi le driver bot (tourne le tour des bots avec un délai de 1,2s). Chaque socket est authentifié via JWT à la connexion.
+- **`server/src/rooms.ts`** — Map en mémoire `code → Room`. Les rooms sont éphémères (pas persistées en DB).
+- **`server/src/db.ts`** — SQLite via `node:sqlite` (builtin Node.js ≥ 22, flag `--experimental-sqlite`). 4 tables : `users`, `user_stats`, `games`, `game_players`. Inclut une migration inline pour la colonne `is_admin`.
+- **`server/src/auth.ts`** — JWT HS256, bcrypt pour les passwords. La fonction `ensureAdmin` crée un compte admin au démarrage si `ADMIN_PSEUDO`/`ADMIN_PASSWORD` sont définis dans l'env.
+
+### Frontend — fichiers clés
+
+- **`app/src/App.tsx`** — Router à état (`useState<Page>`). Routing en 3 zones : anonymous (home/login/register), authenticated+in-room (routé par `roomState.phase`), authenticated+lobby (meta pages).
+- **`app/src/lib/game.tsx`** — `GameProvider` + `useGame()`. Unique point d'entrée pour tout ce qui touche au jeu. Gère la connexion Socket.IO, écoute tous les events serveur, expose les actions (draw, swap, snap, combo, powers…).
+- **`app/src/lib/auth.tsx`** — `AuthProvider` + `useAuth()`. Hydrate le token JWT depuis localStorage au mount, expose `user` et les méthodes login/register/logout.
+- **`app/src/lib/socket.ts`** — Singleton Socket.IO. L'URL de connexion vient de `import.meta.env.VITE_API_URL` (vide en dev = connexion relative, URL VPS en prod).
+- **`app/src/lib/api.ts`** — Toutes les requêtes REST. Préfixe les paths avec `VITE_API_URL` (même logique). Token JWT injecté automatiquement dans chaque requête.
+
+### Phases de jeu (Room.phase)
+
+```
+waiting → memorize (6s) → turn ⟷ snap-window (3s)
+                                ↕ power (20s timeout)
+                                ↕ combo-final
+                           → round-end → [nouvelle manche ou game-end]
+```
+
+La mécanique **snap** : après chaque discard/swap, une fenêtre de 3s s'ouvre. N'importe quel joueur peut tenter de snapper une de ses cartes si son rang = top du discard. Succès → slot devient `null` (trou). Échec → carte penalty ajoutée à la main.
+
+**Combo** : un joueur appelle combo à la place de jouer. Chaque autre joueur connecté joue exactement un dernier tour, puis la manche se termine.
+
+### Electron (app/electron/main.cjs)
+
+Charge `dist/index.html` en `file://`. Le `.cjs` est nécessaire car `app/package.json` a `"type": "module"`. La config `base: './'` dans `vite.config.ts` est essentielle pour que les assets (`./assets/...`) soient résolvables depuis `file://`.
+
+## Points d'attention
+
+- **SQLite natif** : le serveur requiert Node.js ≥ 22.5 et le flag `--experimental-sqlite`. `npm run dev` l'inclut déjà.
+- **Rooms en mémoire** : un restart serveur vide toutes les rooms en cours. Les stats en DB sont préservées.
+- **Sécurité des mains** : le serveur envoie `game:hand` (main privée) séparément à chaque joueur. `publicState()` ne révèle jamais les cartes, seulement le `handCount` et les trous (`holes`).
+- **Solo = pas de stats** : les parties solo (vs bots) ne sont pas enregistrées en DB (`isSolo` check dans `finalizeAndPersist`).
+- **Admin** : le flag `is_admin` sur un user débloque le `DevNav` (overlay de debug) côté client et les events `dev:trigger-power` côté serveur.
