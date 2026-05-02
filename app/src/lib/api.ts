@@ -26,12 +26,20 @@ export class ApiError extends Error {
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+/** Embedded only in desktop builds; identifies this client to the server gate. */
+const DESKTOP_CLIENT_SECRET = import.meta.env.VITE_DESKTOP_CLIENT_SECRET ?? '';
+
+/** Value the socket sends in handshake.auth.client. Empty in browser builds. */
+export function clientToken(): string {
+  return DESKTOP_CLIENT_SECRET;
+}
 
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((opts.headers as Record<string, string>) ?? {}),
   };
+  if (DESKTOP_CLIENT_SECRET) headers['X-Combo-Client'] = DESKTOP_CLIENT_SECRET;
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${BASE_URL}${path}`, { ...opts, headers });

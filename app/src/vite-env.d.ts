@@ -2,6 +2,10 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
+  /** Shared secret embedded in the desktop build; sent with every API call
+   *  and socket handshake to prove the client is the .exe. Empty in browser
+   *  dev/prod builds. */
+  readonly VITE_DESKTOP_CLIENT_SECRET: string;
 }
 
 interface ImportMeta {

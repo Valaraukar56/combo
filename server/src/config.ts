@@ -7,7 +7,17 @@ export const config = {
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   nodeEnv: process.env.NODE_ENV ?? 'development',
   isProd: process.env.NODE_ENV === 'production',
+  // Shared secret embedded in the desktop (.exe) build. When set, every API
+  // call and socket handshake must present it via the X-Combo-Client header
+  // (or handshake.auth.client). Leave unset for local dev — without a secret
+  // the gate stays open so the browser still works through Vite.
+  desktopClientSecret: process.env.DESKTOP_CLIENT_SECRET ?? '',
+  desktopDownloadUrl:
+    process.env.DESKTOP_DOWNLOAD_URL ??
+    'https://github.com/Valaraukar56/combo/releases/latest',
 };
+
+export const desktopClientGateEnabled = !!config.desktopClientSecret;
 
 if (config.isProd && config.jwtSecret === 'dev-only-secret-change-me') {
   throw new Error('JWT_SECRET must be set in production');

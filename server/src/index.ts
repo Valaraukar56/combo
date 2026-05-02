@@ -1,11 +1,11 @@
 import cors from 'cors';
-import express from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
 import { authRouter, ensureAdmin } from './auth.js';
-import { config } from './config.js';
+import { config, desktopClientGateEnabled } from './config.js';
 import './db.js'; // initializes schema
 import { setupSocketServer } from './socket.js';
 import { statsRouter } from './stats.js';
@@ -19,23 +19,42 @@ app.use(
   cors({
     origin: config.corsOrigin,
     credentials: false,
+    // The desktop client adds this header on every API call.
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Combo-Client'],
   })
 );
+
+// Gate every /api/* route behind the desktop-client secret when configured.
+// /api/health stays open so monitoring / curl can probe the server.
+function requireDesktopClient(req: Request, res: Response, next: NextFunction): void {
+  if (!desktopClientGateEnabled) return next();
+  const presented = req.header('X-Combo-Client');
+  if (presented && presented === config.desktopClientSecret) return next();
+  res.status(403).json({ error: 'desktop_client_required' });
+}
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });
 
-app.use('/api/auth', authRouter);
-app.use('/api/stats', statsRouter);
+app.use('/api/auth', requireDesktopClient, authRouter);
+app.use('/api/stats', requireDesktopClient, statsRouter);
 
-// Serve the built frontend in production.
+// Serve the built frontend OR the download landing page depending on whether
+// the desktop-client gate is on. With the gate enabled the SPA is shipped
+// inside the .exe — the web server only needs to advertise where to grab it.
 if (config.isProd) {
-  const distDir = path.resolve(__dirname, '../../app/dist');
-  app.use(express.static(distDir));
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(distDir, 'index.html'));
-  });
+  if (desktopClientGateEnabled) {
+    app.get('*', (_req, res) => {
+      res.set('Content-Type', 'text/html; charset=utf-8').send(landingPage());
+    });
+  } else {
+    const distDir = path.resolve(__dirname, '../../app/dist');
+    app.use(express.static(distDir));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(distDir, 'index.html'));
+    });
+  }
 }
 
 const httpServer = createServer(app);
@@ -45,9 +64,56 @@ const io = new Server(httpServer, {
   pingInterval: 20000,
 });
 
+// Same desktop-client gate at the socket handshake.
+io.use((socket, next) => {
+  if (!desktopClientGateEnabled) return next();
+  const presented = (socket.handshake.auth as { client?: string })?.client;
+  if (presented && presented === config.desktopClientSecret) return next();
+  next(new Error('desktop_client_required'));
+});
+
 setupSocketServer(io);
 
 httpServer.listen(config.port, () => {
-  console.log(`[combo-server] listening on :${config.port} (${config.nodeEnv})`);
+  const gate = desktopClientGateEnabled ? 'desktop-only' : 'open';
+  console.log(`[combo-server] listening on :${config.port} (${config.nodeEnv}, ${gate})`);
   void ensureAdmin();
 });
+
+function landingPage(): string {
+  const url = config.desktopDownloadUrl;
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Combo — Application desktop requise</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at top, #1a1410 0%, #0a0805 70%);
+    color: #ede4cf; font-family: -apple-system, system-ui, "Segoe UI", sans-serif; }
+  .card { max-width: 540px; padding: 48px 44px; text-align: center;
+    background: rgba(20, 14, 10, 0.6); border: 1.5px solid #c8a96e;
+    border-radius: 12px; box-shadow: 0 20px 80px rgba(0,0,0,0.6); }
+  h1 { margin: 0 0 12px; font-size: 56px; font-style: italic; color: #e8c896;
+    font-family: Georgia, "Playfair Display", serif; letter-spacing: 0.02em; }
+  p { color: #a09a8a; line-height: 1.6; font-size: 15px; margin: 0 0 28px; }
+  a.btn { display: inline-block; padding: 14px 28px; font-weight: 600;
+    background: linear-gradient(180deg, #e8c896 0%, #c8a96e 100%);
+    color: #1a1410; border-radius: 8px; text-decoration: none;
+    box-shadow: 0 4px 16px rgba(200,169,110,0.3); }
+  a.btn:hover { transform: translateY(-1px); }
+  .small { margin-top: 24px; font-size: 12px; color: #6a6356;
+    font-family: "SF Mono", Consolas, monospace; letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Combo</h1>
+    <p>Le jeu est désormais disponible uniquement via l'application desktop. Téléchargez la dernière version pour jouer.</p>
+    <a class="btn" href="${url}">Télécharger pour Windows ↓</a>
+    <div class="small">VERSION DESKTOP REQUISE</div>
+  </div>
+</body>
+</html>`;
+}
