@@ -39,40 +39,60 @@ npm run typecheck        # tsc --noEmit
 
 ## Déploiement VPS
 
-Le serveur tourne sur `https://51.68.129.168.sslip.io` géré par **systemctl** (`combo.service`).
+Le serveur tourne sur `https://51.68.129.168.sslip.io` géré par **systemctl** (`combo.service`). En prod le **gate desktop-only** est actif (voir section dédiée plus bas) : le serveur ne sert plus le SPA, juste l'API + Socket.IO + une landing page « télécharger pour Windows » à la racine. Les joueurs jouent uniquement via le `.exe`.
 
 Commandes de déploiement (depuis `/home/ubuntu/combo`) :
 
 ```bash
-# Si seul app/ a changé (cas le plus fréquent)
-git pull
-npm --prefix app run build
-sudo systemctl restart combo.service
-
-# Si server/ a aussi changé
+# Changement uniquement côté server/  (cas le plus fréquent maintenant)
 git pull
 npm --prefix server run build
-npm --prefix app run build
 sudo systemctl restart combo.service
+
+# Changement uniquement côté app/
+# → PAS de rebuild VPS. Faire `npm run electron:publish` en local pour
+#   pousser une nouvelle release. L'auto-update livre la version aux joueurs.
+
+# Changement des deux
+git pull
+npm --prefix server run build
+sudo systemctl restart combo.service
+# Puis publier app/ depuis Windows (cf section Auto-update plus bas)
 ```
+
+> Le serveur ne lit plus `app/dist/` quand le gate est actif — pas besoin de rebuilder le client sur le VPS.
 
 ## Environment Variables
 
-### `server/.env`
+### `server/.env` (sur le VPS)
 ```
 PORT=3001
 JWT_SECRET=<secret obligatoire en prod>
 DB_PATH=./data/combo.db
 CORS_ORIGIN=http://localhost:5173
-NODE_ENV=development
+NODE_ENV=production
+DESKTOP_CLIENT_SECRET=<secret partagé avec app/.env>
+DESKTOP_DOWNLOAD_URL=https://github.com/Valaraukar56/combo/releases/latest  # optionnel
 ```
-En production, `JWT_SECRET` manquant fait crasher le serveur au démarrage (voulu).
+- `JWT_SECRET` manquant en prod = crash au démarrage (voulu).
+- `DESKTOP_CLIENT_SECRET` non défini = mode `open` (gate désactivé, le SPA est servi). C'est le mode dev. Avec une valeur, le serveur passe en mode `desktop-only` (cf section Desktop-only gate).
+- Le log au boot affiche `(production, desktop-only)` ou `(production, open)` selon l'état du gate — utile pour vérifier que la variable d'env est bien lue par systemd.
 
-### `app/.env.production`
+### `app/.env` (en local sur la machine de build Windows, gitignoré)
+```
+GH_TOKEN=<token GitHub avec scope "repo">
+VITE_API_URL=https://51.68.129.168.sslip.io
+VITE_DESKTOP_CLIENT_SECRET=<même valeur que côté server>
+```
+- `GH_TOKEN` : utilisé par electron-builder pour pousser les releases.
+- `VITE_API_URL` : URL de l'API embarquée dans le bundle. Vide en dev = relatif (proxy Vite).
+- `VITE_DESKTOP_CLIENT_SECRET` : embarqué dans le bundle au build, envoyé en `X-Combo-Client` à chaque appel API et dans `handshake.auth.client` côté Socket.IO.
+
+### `app/.env.production` (committé, public)
 ```
 VITE_API_URL=https://51.68.129.168.sslip.io
 ```
-En dev, `VITE_API_URL` est vide — le proxy Vite prend le relais vers `:3001`.
+Cette variable est OK à exposer (c'est juste l'URL). **Ne jamais y mettre `VITE_DESKTOP_CLIENT_SECRET`** : ça serait commit en clair sur GitHub.
 
 ## Architecture
 
@@ -115,6 +135,21 @@ La mécanique **snap** : après chaque discard/swap, une fenêtre de 3s s'ouvre.
 
 **Combo** : un joueur appelle combo à la place de jouer. Chaque autre joueur connecté joue exactement un dernier tour, puis la manche se termine.
 
+### Desktop-only gate
+
+Depuis l'introduction du `.exe`, **le serveur n'accepte plus que le client desktop**. Mécanisme :
+
+- Côté serveur (`server/src/index.ts` + `config.ts`) : si `DESKTOP_CLIENT_SECRET` est défini dans l'env, deux gates sont activés :
+  1. **HTTP** — toutes les routes `/api/*` exigent un header `X-Combo-Client` égal au secret. Sans ça, 403. `/api/health` reste ouvert pour le monitoring.
+  2. **Socket.IO** — le handshake exige `socket.handshake.auth.client === secret`. Sans ça, la connexion est refusée.
+  3. **Racine** — `/` retourne une landing page « Télécharger pour Windows ↓ » qui pointe vers `DESKTOP_DOWNLOAD_URL` (par défaut le dernier release GitHub). Le SPA n'est plus servi en prod.
+- Côté client (`app/src/lib/api.ts` + `socket.ts`) : si `VITE_DESKTOP_CLIENT_SECRET` est non vide à la build, il est envoyé dans le header / handshake. Vide = pas de header (mode dev navigateur).
+- Le secret est embarqué dans le JS minifié du `.exe`. Réversible avec du reverse-engineering, mais largement suffisant pour un jeu entre amis. Si le secret fuite, en générer un nouveau (`openssl rand -hex 32`), mettre à jour `server/.env` + `app/.env`, redémarrer le serveur et republier le `.exe`.
+
+**Activer / désactiver le gate** :
+- Activer : ajouter `DESKTOP_CLIENT_SECRET=...` dans `/home/ubuntu/combo/server/.env` puis `sudo systemctl restart combo.service`.
+- Désactiver temporairement (dev / debug) : commenter la ligne et restart. Le serveur log `(production, open)` au boot.
+
 ### Electron (app/electron/main.cjs)
 
 Charge `dist/index.html` en `file://`. Le `.cjs` est nécessaire car `app/package.json` a `"type": "module"`. La config `base: './'` dans `vite.config.ts` est essentielle pour que les assets (`./assets/...`) soient résolvables depuis `file://`.
@@ -136,17 +171,25 @@ Les mises à jour sont distribuées via **GitHub Releases** (repo `Valaraukar56/
 
 > ⚠️ À faire **en local sur le PC de dev** (pas sur le VPS). Nécessite PowerShell en mode **administrateur**.
 
-1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`) — c'est Claude qui fait ce changement.
+1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`) — c'est Claude qui fait ce changement, sauf si l'utilisateur lance `npm version patch` lui-même.
 2. **Réécrire `app/release-notes.md`** avec un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier est injecté tel quel dans la release GitHub et s'affiche dans la modale de mise à jour côté joueur — donc rester concis et clair.
 3. Committer + pusher (version + notes) sur main.
 4. Donner la commande suivante à l'utilisateur pour qu'il la lance en local dans PowerShell admin :
 ```powershell
 cd "D:\PROJET CODE TA MERE\COMBO\app"
+git pull            # impératif — sinon le bundle peut contenir l'ancien code
 npm run electron:publish
 ```
-Le `GH_TOKEN` est déjà dans `app/.env` et est chargé automatiquement par le script de publication. Ne jamais le commiter.
+`app/.env` doit contenir au minimum `GH_TOKEN`, `VITE_API_URL` et `VITE_DESKTOP_CLIENT_SECRET` (cf section Environment Variables). Tous sont chargés par `scripts/publish.cjs` au runtime — `VITE_*` sont consommés par Vite au build, `GH_TOKEN` par electron-builder pour l'upload.
 
 > Le contenu de `app/release-notes.md` est pris en compte automatiquement par `scripts/publish.cjs` via `--config.releaseInfo.releaseNotesFile`. Si le fichier est absent, electron-builder retombe sur les messages de commit (à éviter).
+
+**Vérifier qu'un publish est sain avant d'installer :**
+```powershell
+Select-String -Path "dist/assets/index-*.js" -Pattern "Combo-Client"   # doit matcher
+Select-String -Path "dist/assets/index-*.js" -Pattern "<8 premiers chars du secret>"   # doit matcher
+```
+Si l'un des deux ne matche pas, le `.exe` publié est cassé et tous les joueurs auront du 403. Bumper la version et republier.
 
 ## Points d'attention
 
@@ -155,3 +198,6 @@ Le `GH_TOKEN` est déjà dans `app/.env` et est chargé automatiquement par le s
 - **Sécurité des mains** : le serveur envoie `game:hand` (main privée) séparément à chaque joueur. `publicState()` ne révèle jamais les cartes, seulement le `handCount` et les trous (`holes`).
 - **Solo = pas de stats** : les parties solo (vs bots) ne sont pas enregistrées en DB (`isSolo` check dans `finalizeAndPersist`).
 - **Admin** : le flag `is_admin` sur un user débloque le `DevNav` (overlay de debug) côté client et les events `dev:trigger-power` côté serveur.
+- **Build Windows manquante d'un secret = 403** : si `VITE_DESKTOP_CLIENT_SECRET` est absent de `app/.env` au moment du build, le bundle ne contient pas le header et le `.exe` se prend des 403 à chaque appel API. Vérifier rapidement avec `Select-String -Path "app/dist/assets/index-*.js" -Pattern "Combo-Client"` — doit retourner un match.
+- **Pull avant publish** : la machine Windows de build doit être à jour avec `main` avant chaque `electron:publish`. Sinon le `.exe` distribué peut contenir l'ancien code, pas les dernières features.
+- **VPS package-lock.json** : `git pull` peut échouer parce qu'un `npm install` précédent a régénéré le lock file. Récupérer avec `git checkout -- app/package-lock.json` (ou `server/package-lock.json`) puis re-pull.
