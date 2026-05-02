@@ -426,13 +426,18 @@ export class Room {
     const scores = this.players.map((p) => ({ p, score: handScore(p.hand.filter((c): c is Card => !!c)) }));
     const lowest = Math.min(...scores.map((s) => s.score));
     const callerScore = callerId ? scores.find((s) => s.p.id === callerId)?.score ?? null : null;
-    const callerWasLowest = !!callerId && callerScore === lowest;
+    // Caller only wins on a STRICT minimum — if anyone else ties them, the
+    // tied opponent(s) are considered the round winners and the caller takes
+    // the penalty.
+    const playersAtLowest = scores.filter((s) => s.score === lowest).length;
+    const callerWasStrictlyLowest =
+      !!callerId && callerScore === lowest && playersAtLowest === 1;
 
     const results: RoundResult[] = scores.map(({ p, score }) => {
-      const comboPenalty = p.id === callerId && !callerWasLowest ? 10 : 0;
+      const comboPenalty = p.id === callerId && !callerWasStrictlyLowest ? 10 : 0;
       const total = score + comboPenalty;
       p.totalScore += total;
-      if (p.id === callerId && callerWasLowest) {
+      if (p.id === callerId && callerWasStrictlyLowest) {
         p.combosWon += 1;
       }
       return {

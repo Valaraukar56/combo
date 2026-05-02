@@ -60,7 +60,7 @@ export function RulesScreen({ onNavigate }: NavProps) {
             <RuleCard
               num="4"
               title="Crier Combo"
-              body="Au début de votre tour (avant de piocher), criez 'Combo' si vous pensez avoir le score le plus bas. Tous les autres joueurs jouent un dernier tour, puis tout le monde révèle. Si vous n'avez pas le score le plus bas, vous prenez +10 pts de pénalité."
+              body="Au début de votre tour (avant de piocher), criez 'Combo' si vous pensez avoir le score le plus bas. Tous les autres joueurs jouent un dernier tour, puis tout le monde révèle. Vous gagnez la manche uniquement si votre score est strictement le plus bas — en cas d'égalité avec un autre joueur, vous prenez +10 pts de pénalité et c'est l'autre joueur qui gagne."
             />
           </div>
 
