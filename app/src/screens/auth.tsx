@@ -3,7 +3,7 @@ import { Button, Input, Logo, Page, SectionHeading } from '../components/ui';
 import { PlayingCard } from '../components/Card';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../lib/auth';
-import { ApiError } from '../lib/api';
+import { APP_VERSION, ApiError } from '../lib/api';
 import type { Page as PageId } from '../types';
 
 interface NavProps {
@@ -120,7 +120,7 @@ export function HomeScreen({ onNavigate }: NavProps) {
           }}
         >
           <span>© Combo · 2025</span>
-          <span style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}>v1.0 · prototype</span>
+          <span style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}>v{APP_VERSION}</span>
         </footer>
       </div>
     </Page>

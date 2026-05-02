@@ -58,7 +58,26 @@ if (!fs.existsSync(builderCli)) {
 // since the last tag. Bump app/release-notes.md whenever you bump version.
 const releaseNotesPath = path.join(__dirname, '..', 'release-notes.md');
 const builderArgs = [builderCli, '--publish', 'always'];
+
+// Sanity check: the release notes file must mention the current version,
+// otherwise the GitHub release body (and the in-app update modal) would
+// describe the previous version's changes — easy mistake to make when you
+// forget to update the notes between two `npm version patch`.
 if (fs.existsSync(releaseNotesPath)) {
+  const pkgPath = path.join(__dirname, '..', 'package.json');
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  const notes = fs.readFileSync(releaseNotesPath, 'utf8');
+  if (!notes.includes(pkg.version)) {
+    console.error(
+      `[publish] release-notes.md does NOT mention the current version (${pkg.version}).\n` +
+        `         The GitHub release body becomes the text players see in the\n` +
+        `         in-app update modal — it must describe what's new in ${pkg.version}.\n` +
+        `         File: ${releaseNotesPath}\n` +
+        `         Either update the file or set SKIP_RELEASE_NOTES_CHECK=1 to bypass.`
+    );
+    if (process.env.SKIP_RELEASE_NOTES_CHECK !== '1') process.exit(1);
+    console.warn('[publish] SKIP_RELEASE_NOTES_CHECK=1 — proceeding with stale notes.');
+  }
   builderArgs.push(`--config.releaseInfo.releaseNotesFile=${releaseNotesPath}`);
   console.log(`[publish] Using release notes from ${releaseNotesPath}`);
 } else {

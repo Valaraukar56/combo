@@ -12,7 +12,7 @@ import {
 import { PlayingCard } from '../components/Card';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../lib/auth';
-import { api, type HistoryEntry, type LeaderboardEntry, type UserStats } from '../lib/api';
+import { APP_VERSION, api, type HistoryEntry, type LeaderboardEntry, type UserStats } from '../lib/api';
 import type { Page as PageId } from '../types';
 
 interface NavProps {
@@ -757,6 +757,34 @@ export function SettingsScreen({ onNavigate }: NavProps) {
                 >
                   Supprimer…
                 </Button>
+              </div>
+            </SettingsGroup>
+
+            <SettingsGroup title="À propos">
+              <div
+                style={{
+                  padding: '14px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>Version installée</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2 }}>
+                    Mise à jour automatique à chaque démarrage.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 14,
+                    color: 'var(--gold-bright)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  v{APP_VERSION}
+                </div>
               </div>
             </SettingsGroup>
           </div>
