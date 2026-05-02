@@ -52,8 +52,23 @@ if (!fs.existsSync(builderCli)) {
   process.exit(1);
 }
 
+// User-facing release notes for this version. We pass the file directly to
+// electron-builder so the GitHub release body (= what shows up in the in-app
+// update modal) is the curated text rather than a dump of every commit message
+// since the last tag. Bump app/release-notes.md whenever you bump version.
+const releaseNotesPath = path.join(__dirname, '..', 'release-notes.md');
+const builderArgs = [builderCli, '--publish', 'always'];
+if (fs.existsSync(releaseNotesPath)) {
+  builderArgs.push(`--config.releaseInfo.releaseNotesFile=${releaseNotesPath}`);
+  console.log(`[publish] Using release notes from ${releaseNotesPath}`);
+} else {
+  console.warn(
+    `[publish] No release-notes.md at ${releaseNotesPath} — falling back to commit messages`
+  );
+}
+
 console.log('[publish] Spawning electron-builder…');
-const result = spawnSync(process.execPath, [builderCli, '--publish', 'always'], {
+const result = spawnSync(process.execPath, builderArgs, {
   stdio: 'inherit',
   env: process.env,
 });

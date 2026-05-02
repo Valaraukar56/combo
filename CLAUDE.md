@@ -137,13 +137,16 @@ Les mises à jour sont distribuées via **GitHub Releases** (repo `Valaraukar56/
 > ⚠️ À faire **en local sur le PC de dev** (pas sur le VPS). Nécessite PowerShell en mode **administrateur**.
 
 1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`) — c'est Claude qui fait ce changement.
-2. Committer + pusher le changement de version sur main.
-3. Donner la commande suivante à l'utilisateur pour qu'il la lance en local dans PowerShell admin :
+2. **Réécrire `app/release-notes.md`** avec un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier est injecté tel quel dans la release GitHub et s'affiche dans la modale de mise à jour côté joueur — donc rester concis et clair.
+3. Committer + pusher (version + notes) sur main.
+4. Donner la commande suivante à l'utilisateur pour qu'il la lance en local dans PowerShell admin :
 ```powershell
 cd "D:\PROJET CODE TA MERE\COMBO\app"
 npm run electron:publish
 ```
 Le `GH_TOKEN` est déjà dans `app/.env` et est chargé automatiquement par le script de publication. Ne jamais le commiter.
+
+> Le contenu de `app/release-notes.md` est pris en compte automatiquement par `scripts/publish.cjs` via `--config.releaseInfo.releaseNotesFile`. Si le fichier est absent, electron-builder retombe sur les messages de commit (à éviter).
 
 ## Points d'attention
 
