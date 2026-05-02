@@ -8,6 +8,10 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    // Icon shown in the taskbar / window title bar / Alt+Tab list while the app
+    // is running. The .exe itself uses build/icon.ico (set via electron-builder
+    // win.icon in package.json) — this PNG is purely runtime UI.
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

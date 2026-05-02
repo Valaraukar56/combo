@@ -119,6 +119,15 @@ La mécanique **snap** : après chaque discard/swap, une fenêtre de 3s s'ouvre.
 
 Charge `dist/index.html` en `file://`. Le `.cjs` est nécessaire car `app/package.json` a `"type": "module"`. La config `base: './'` dans `vite.config.ts` est essentielle pour que les assets (`./assets/...`) soient résolvables depuis `file://`.
 
+### Icônes de l'app
+
+Deux fichiers à conserver à `app/build/` :
+
+- `icon.ico` — utilisé par electron-builder pour l'icône du `.exe`, de l'installeur NSIS et du désinstalleur.
+- `icon.png` — utilisé par `BrowserWindow` au runtime pour la barre des tâches Windows / Alt+Tab. Embarqué dans le package via `build/icon.png` listé dans `build.files`.
+
+Si tu changes l'icône, remplace les **deux** fichiers (le PNG en 512×512 idéalement, le ICO multi-tailles 16/32/48/256). Pour reconvertir : https://convertio.co/fr/png-ico/
+
 ### Auto-update (electron-updater)
 
 Les mises à jour sont distribuées via **GitHub Releases** (repo `Valaraukar56/combo`). Au démarrage, l'app vérifie silencieusement s'il y a une nouvelle version. Si oui, elle télécharge en arrière-plan et propose un redémarrage via une dialog.
