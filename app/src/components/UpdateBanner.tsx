@@ -11,8 +11,10 @@ interface UpdateInfo {
  * GitHub renders release notes (= the commit message) as HTML — `<p>...</p>`,
  * `<br />`, etc. Electron-updater forwards that HTML verbatim, so without
  * cleaning we'd display the raw markup in our modal. This converts the markup
- * to plain text, drops auto-generated trailers, and appends a stable author
- * line so the modal stays human-readable.
+ * to plain text, drops auto-generated trailers, and ensures every set of
+ * notes ends with an author line. The check is idempotent so notes that
+ * already include "Auteur : Vala" (the convention in release-notes.md) don't
+ * get a duplicate appended.
  */
 function cleanReleaseNotes(raw: string | null): string | null {
   if (!raw) return null;
@@ -33,6 +35,7 @@ function cleanReleaseNotes(raw: string | null): string | null {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   if (!text) return 'Auteur : Vala';
+  if (/auteur\s*:\s*vala/i.test(text)) return text;
   return `${text}\n\nAuteur : Vala`;
 }
 
