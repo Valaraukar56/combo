@@ -119,14 +119,17 @@ Charge `dist/index.html` en `file://`. Le `.cjs` est nécessaire car `app/packag
 Les mises à jour sont distribuées via **GitHub Releases** (repo `Valaraukar56/combo`). Au démarrage, l'app vérifie silencieusement s'il y a une nouvelle version. Si oui, elle télécharge en arrière-plan et propose un redémarrage via une dialog.
 
 **Pour publier une nouvelle version :**
-1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`)
-2. Lancer dans PowerShell (droits admin) :
+
+> ⚠️ À faire **en local sur le PC de dev** (pas sur le VPS). Nécessite PowerShell en mode **administrateur**.
+
+1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`) — c'est Claude qui fait ce changement.
+2. Committer + pusher le changement de version sur main.
+3. Donner la commande suivante à l'utilisateur pour qu'il la lance en local dans PowerShell admin :
 ```powershell
-$env:GH_TOKEN="ton_token_github"
 cd "D:\PROJET CODE TA MERE\COMBO\app"
 npm run electron:publish
 ```
-Le token GitHub doit avoir les permissions `repo`. Ne jamais le commiter.
+Le `GH_TOKEN` est déjà dans `app/.env` et est chargé automatiquement par le script de publication. Ne jamais le commiter.
 
 ## Points d'attention
 

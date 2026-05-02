@@ -27,6 +27,7 @@ export function LobbyScreen({ onNavigate }: NavProps) {
   const toast = useToast();
   const [showJoin, setShowJoin] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showNewGameChoice, setShowNewGameChoice] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [lastCode, setLastCode] = useState<string | null>(() => getLastRoomCode());
 
@@ -76,7 +77,13 @@ export function LobbyScreen({ onNavigate }: NavProps) {
   };
 
   const handleSolo = () => {
+    setShowNewGameChoice(false);
     handleCreate({ maxPlayers: 4, rounds: 1, isPrivate: true, isSolo: true });
+  };
+
+  const handleChooseFriends = () => {
+    setShowNewGameChoice(false);
+    setShowCreate(true);
   };
 
   return (
@@ -144,7 +151,7 @@ export function LobbyScreen({ onNavigate }: NavProps) {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(2, 1fr)',
               gap: 20,
               marginTop: 40,
             }}
@@ -152,10 +159,10 @@ export function LobbyScreen({ onNavigate }: NavProps) {
             <ActionTile
               eyebrow="Créer"
               title="Nouvelle partie"
-              desc="Invitez vos amis avec un code de salon. Vous choisissez les règles."
-              cta="Créer une partie"
+              desc="Affrontez l'IA en solo ou créez un salon pour jouer avec vos amis."
+              cta="Lancer une partie"
               accent="gold"
-              onClick={() => setShowCreate(true)}
+              onClick={() => setShowNewGameChoice(true)}
               cards={[
                 { rank: 'A', suit: '♠', x: -28, y: 0, rot: -12 },
                 { rank: 'A', suit: '♥', x: 0, y: -8, rot: 0 },
@@ -173,15 +180,6 @@ export function LobbyScreen({ onNavigate }: NavProps) {
                 { rank: '7', suit: '♥', x: -16, y: 0, rot: -6 },
                 { rank: '7', suit: '♣', x: 16, y: 0, rot: 6 },
               ]}
-            />
-            <ActionTile
-              eyebrow="Solo"
-              title="Contre l'IA"
-              desc="Entraînez-vous contre 3 bots. Idéal pour apprendre."
-              cta="Lancer en solo"
-              accent="default"
-              onClick={handleSolo}
-              cards={[{ rank: 'K', suit: '♣', x: 0, y: 0, rot: 0, faceDown: true }]}
             />
           </div>
 
@@ -232,6 +230,13 @@ export function LobbyScreen({ onNavigate }: NavProps) {
         </div>
       </div>
 
+      <Modal open={showNewGameChoice} onClose={() => setShowNewGameChoice(false)}>
+        <NewGameChoice
+          onCancel={() => setShowNewGameChoice(false)}
+          onChooseSolo={handleSolo}
+          onChooseFriends={handleChooseFriends}
+        />
+      </Modal>
       <Modal open={showCreate} onClose={() => setShowCreate(false)}>
         <CreateRoomForm onCancel={() => setShowCreate(false)} onCreate={handleCreate} />
       </Modal>
@@ -239,6 +244,123 @@ export function LobbyScreen({ onNavigate }: NavProps) {
         <JoinRoomForm onCancel={() => setShowJoin(false)} onJoin={handleJoin} />
       </Modal>
     </Page>
+  );
+}
+
+/* ──────── New Game choice (AI vs Friends) ──────── */
+interface NewGameChoiceProps {
+  onCancel: () => void;
+  onChooseSolo: () => void;
+  onChooseFriends: () => void;
+}
+
+function NewGameChoice({ onCancel, onChooseSolo, onChooseFriends }: NewGameChoiceProps) {
+  return (
+    <>
+      <SectionHeading
+        eyebrow="Nouvelle partie"
+        title="Contre qui jouez-vous ?"
+        sub="Choisissez votre adversaire — l'IA pour vous entraîner, ou des amis pour défier vos proches."
+        level="h2"
+      />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 16,
+          marginTop: 28,
+        }}
+      >
+        <ChoiceCard
+          eyebrow="Solo"
+          title="Contre l'IA"
+          desc="Affrontez 3 bots en une manche. Idéal pour apprendre."
+          accent="default"
+          onClick={onChooseSolo}
+        />
+        <ChoiceCard
+          eyebrow="Multi"
+          title="Contre des amis"
+          desc="Créez un salon privé et invitez vos amis avec un code."
+          accent="gold"
+          onClick={onChooseFriends}
+        />
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          marginTop: 24,
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Button variant="ghost" onClick={onCancel}>
+          Annuler
+        </Button>
+      </div>
+    </>
+  );
+}
+
+interface ChoiceCardProps {
+  eyebrow: string;
+  title: string;
+  desc: string;
+  accent: 'gold' | 'default';
+  onClick: () => void;
+}
+
+function ChoiceCard({ eyebrow, title, desc, accent, onClick }: ChoiceCardProps) {
+  const [hover, setHover] = useState(false);
+  const accentColor = accent === 'gold' ? 'var(--gold)' : 'var(--ink-2)';
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1.5px solid',
+        borderColor: hover ? accentColor : 'var(--border)',
+        borderRadius: 'var(--radius)',
+        padding: 24,
+        textAlign: 'left',
+        cursor: 'pointer',
+        transition: 'all var(--t)',
+        transform: hover ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hover ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+        fontFamily: 'var(--font-body)',
+        color: 'var(--ink)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
+      <div className="eyebrow" style={{ color: accentColor }}>
+        {eyebrow}
+      </div>
+      <h3
+        className="display"
+        style={{
+          fontSize: 22,
+          margin: 0,
+          color: hover ? accentColor : 'var(--ink)',
+          transition: 'color var(--t)',
+        }}
+      >
+        {title}
+      </h3>
+      <p
+        style={{
+          fontSize: 13,
+          color: 'var(--ink-2)',
+          margin: 0,
+          lineHeight: 1.5,
+        }}
+      >
+        {desc}
+      </p>
+    </button>
   );
 }
 
