@@ -1,3 +1,3 @@
-Combo v0.1.11
+Combo v0.1.12
 
-— Confirmation avant de quitter une partie : un clic accidentel sur « Quitter » ne vous fait plus perdre votre place. Une fenêtre vous demande de confirmer (depuis le salon d'attente, pendant la partie, ou entre deux manches).
+— La fenêtre de mise à jour ne propose plus de reporter : un seul bouton « Redémarrer » pour installer immédiatement la nouvelle version. Tous les joueurs jouent ainsi sur la même version.

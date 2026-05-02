@@ -43,7 +43,6 @@ function cleanReleaseNotes(raw: string | null): string | null {
  */
 export function UpdateBanner() {
   const [info, setInfo] = useState<UpdateInfo | null>(null);
-  const [dismissed, setDismissed] = useState(false);
   const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
@@ -51,7 +50,6 @@ export function UpdateBanner() {
     if (!bridge) return;
     const off = bridge.onUpdateReady((payload) => {
       setInfo(payload);
-      setDismissed(false);
     });
     return off;
   }, []);
@@ -61,7 +59,7 @@ export function UpdateBanner() {
     [info]
   );
 
-  if (!info || dismissed) return null;
+  if (!info) return null;
 
   const handleInstall = () => {
     setInstalling(true);
@@ -142,13 +140,12 @@ export function UpdateBanner() {
               <strong style={{ color: 'var(--gold-bright)', fontFamily: 'var(--font-mono)' }}>
                 v{info.version}
               </strong>{' '}
-              a été téléchargée. Redémarrez maintenant pour l'installer, ou continuez de jouer
-              et la mise à jour s'appliquera à la prochaine fermeture.
+              a été téléchargée. Cliquez sur « Redémarrer » pour l'installer et continuer à jouer.
             </>
           ) : (
             <>
-              Une nouvelle version a été téléchargée. Redémarrez maintenant pour l'installer, ou
-              continuez de jouer et la mise à jour s'appliquera à la prochaine fermeture.
+              Une nouvelle version a été téléchargée. Cliquez sur « Redémarrer » pour l'installer
+              et continuer à jouer.
             </>
           )}
         </p>
@@ -176,15 +173,11 @@ export function UpdateBanner() {
         <div
           style={{
             display: 'flex',
-            gap: 10,
             marginTop: 28,
-            justifyContent: 'flex-end',
+            justifyContent: 'center',
           }}
         >
-          <Button variant="ghost" onClick={() => setDismissed(true)} disabled={installing}>
-            Plus tard
-          </Button>
-          <Button variant="primary" onClick={handleInstall} disabled={installing}>
+          <Button variant="primary" size="lg" onClick={handleInstall} disabled={installing}>
             {installing ? 'Redémarrage…' : 'Redémarrer maintenant →'}
           </Button>
         </div>
