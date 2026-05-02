@@ -37,6 +37,19 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });
 
+// Resolve the latest .exe URL via the GitHub API and redirect straight to it.
+// Avoids the user having to click through the GitHub releases page.
+app.get('/download', async (_req, res) => {
+  try {
+    const url = await resolveLatestExeUrl();
+    res.redirect(302, url);
+  } catch (err) {
+    console.error('[download] failed to resolve latest exe', err);
+    // Fallback: send the user to the releases page so they can pick manually.
+    res.redirect(302, config.desktopDownloadUrl);
+  }
+});
+
 app.use('/api/auth', requireDesktopClient, authRouter);
 app.use('/api/stats', requireDesktopClient, statsRouter);
 
@@ -80,6 +93,42 @@ httpServer.listen(config.port, () => {
   void ensureAdmin();
 });
 
+/** In-memory cache of the latest .exe URL — avoids hitting the GitHub API
+ *  rate limit (60 unauthenticated req/h) when many people open the page. */
+let exeUrlCache: { url: string; expiresAt: number } | null = null;
+const EXE_URL_TTL_MS = 5 * 60 * 1000;
+
+interface GithubReleaseAsset {
+  name: string;
+  browser_download_url: string;
+}
+
+interface GithubReleaseResponse {
+  assets?: GithubReleaseAsset[];
+}
+
+async function resolveLatestExeUrl(): Promise<string> {
+  const now = Date.now();
+  if (exeUrlCache && exeUrlCache.expiresAt > now) return exeUrlCache.url;
+
+  const apiUrl = `https://api.github.com/repos/${config.githubRepo}/releases/latest`;
+  const r = await fetch(apiUrl, {
+    headers: {
+      'User-Agent': 'combo-server',
+      Accept: 'application/vnd.github+json',
+    },
+  });
+  if (!r.ok) throw new Error(`github api ${r.status}`);
+  const data = (await r.json()) as GithubReleaseResponse;
+  const exe = data.assets?.find(
+    (a) => a.name.toLowerCase().endsWith('.exe') && !a.name.toLowerCase().endsWith('.blockmap')
+  );
+  if (!exe) throw new Error('no .exe asset on the latest release');
+
+  exeUrlCache = { url: exe.browser_download_url, expiresAt: now + EXE_URL_TTL_MS };
+  return exe.browser_download_url;
+}
+
 function landingPage(): string {
   const url = config.desktopDownloadUrl;
   return `<!DOCTYPE html>
@@ -111,7 +160,10 @@ function landingPage(): string {
   <div class="card">
     <h1>Combo</h1>
     <p>Le jeu est désormais disponible uniquement via l'application desktop. Téléchargez la dernière version pour jouer.</p>
-    <a class="btn" href="${url}">Télécharger pour Windows ↓</a>
+    <a class="btn" href="/download">Télécharger pour Windows ↓</a>
+    <div style="margin-top: 14px; font-size: 12px; color: #6a6356;">
+      ou <a href="${url}" style="color: #a09a8a;">voir toutes les versions</a>
+    </div>
     <div class="small">VERSION DESKTOP REQUISE</div>
   </div>
 </body>

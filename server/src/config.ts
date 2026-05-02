@@ -15,6 +15,8 @@ export const config = {
   desktopDownloadUrl:
     process.env.DESKTOP_DOWNLOAD_URL ??
     'https://github.com/Valaraukar56/combo/releases/latest',
+  // owner/repo used to resolve the latest .exe via the GitHub API on /download.
+  githubRepo: process.env.GITHUB_REPO ?? 'Valaraukar56/combo',
 };
 
 export const desktopClientGateEnabled = !!config.desktopClientSecret;
