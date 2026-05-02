@@ -35,9 +35,26 @@ if (!process.env.GH_TOKEN) {
   process.exit(1);
 }
 
-const result = spawnSync(
-  process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['electron-builder', '--publish', 'always'],
-  { stdio: 'inherit', env: process.env }
+// Resolve the electron-builder CLI directly from node_modules so we don't
+// depend on npx (which spawns awkwardly on Windows via spawnSync).
+const builderCli = path.join(
+  __dirname,
+  '..',
+  'node_modules',
+  'electron-builder',
+  'out',
+  'cli',
+  'cli.js'
 );
+
+if (!fs.existsSync(builderCli)) {
+  console.error(`[publish] Could not find electron-builder CLI at ${builderCli}`);
+  process.exit(1);
+}
+
+console.log('[publish] Spawning electron-builder…');
+const result = spawnSync(process.execPath, [builderCli, '--publish', 'always'], {
+  stdio: 'inherit',
+  env: process.env,
+});
 process.exit(result.status ?? 1);
