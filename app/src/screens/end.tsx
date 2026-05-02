@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Avatar, Button, GameTopBar, Page } from '../components/ui';
 import { PlayingCard } from '../components/Card';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { useAuth } from '../lib/auth';
 import { useGame } from '../lib/game';
 
@@ -7,6 +9,7 @@ import { useGame } from '../lib/game';
 export function EndRoundScreen() {
   const { user } = useAuth();
   const { roomState, roundResults, leaveRoom } = useGame();
+  const [confirmLeave, setConfirmLeave] = useState(false);
   if (!roomState || !user) return null;
 
   const sorted = [...(roundResults ?? [])].sort((a, b) => a.totalScore - b.totalScore);
@@ -15,12 +18,26 @@ export function EndRoundScreen() {
     <Page bg="bg-deep">
       <GameTopBar
         leftLabel={`Salon ${roomState.code}`}
-        onBack={() => leaveRoom()}
+        onBack={() => setConfirmLeave(true)}
         rightContent={
           <span className="eyebrow" style={{ color: 'var(--gold)' }}>
             Manche {roomState.round} / {roomState.config.rounds}
           </span>
         }
+      />
+
+      <ConfirmModal
+        open={confirmLeave}
+        title="Quitter la partie ?"
+        message="La manche est terminée mais la partie continue. Si vous quittez maintenant, vous abandonnez les manches restantes."
+        confirmLabel="Quitter"
+        cancelLabel="Rester"
+        destructive
+        onCancel={() => setConfirmLeave(false)}
+        onConfirm={() => {
+          setConfirmLeave(false);
+          leaveRoom().catch(() => {});
+        }}
       />
 
       <div

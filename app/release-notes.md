@@ -1,4 +1,3 @@
-Combo v0.1.10
+Combo v0.1.11
 
-— Les pouvoirs des têtes rouges (J♥/♦, Q♥/♦, K♥/♦) s'activent maintenant aussi quand vous échangez la carte avec votre pioche : si la tête rouge atterrit sur la défausse via un échange, son pouvoir se déclenche comme une défausse classique.
-— La page « Règles » a été mise à jour pour refléter cette mécanique.
+— Confirmation avant de quitter une partie : un clic accidentel sur « Quitter » ne vous fait plus perdre votre place. Une fenêtre vous demande de confirmer (depuis le salon d'attente, pendant la partie, ou entre deux manches).

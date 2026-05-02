@@ -9,6 +9,7 @@ import {
   SideRail,
 } from '../components/ui';
 import { PlayingCard } from '../components/Card';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../lib/auth';
 import { useGame } from '../lib/game';
@@ -682,6 +683,7 @@ export function WaitingRoomScreen() {
   const { roomState, setReady, startGame, leaveRoom } = useGame();
   const toast = useToast();
   const [copied, setCopied] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   if (!roomState) return null;
 
@@ -710,7 +712,7 @@ export function WaitingRoomScreen() {
         }}
       >
         <button
-          onClick={() => leaveRoom()}
+          onClick={() => setConfirmLeave(true)}
           style={{
             position: 'absolute',
             top: 24,
@@ -727,6 +729,20 @@ export function WaitingRoomScreen() {
         >
           ← Quitter le salon
         </button>
+
+        <ConfirmModal
+          open={confirmLeave}
+          title="Quitter le salon ?"
+          message="Vous allez quitter ce salon. Si la partie n'a pas commencé, vous libérez votre place ; sinon vous pourrez revenir avec le code."
+          confirmLabel="Quitter"
+          cancelLabel="Rester"
+          destructive
+          onCancel={() => setConfirmLeave(false)}
+          onConfirm={() => {
+            setConfirmLeave(false);
+            leaveRoom().catch(() => toast.push('Erreur lors du départ', 'danger'));
+          }}
+        />
 
         <div style={{ width: '100%', maxWidth: 720, textAlign: 'center' }}>
           <div className="eyebrow" style={{ marginBottom: 12 }}>

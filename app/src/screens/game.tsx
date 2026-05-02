@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Avatar, Button, GameTopBar, Modal, Page, SectionHeading } from '../components/ui';
 import { PlayingCard } from '../components/Card';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../lib/auth';
 import { useGame, type PublicPlayer } from '../lib/game';
@@ -178,6 +179,7 @@ export function GameTableScreen() {
   const toast = useToast();
   const [showRules, setShowRules] = useState(false);
   const [comboCalled, setComboCalled] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   useEffect(() => {
     if (roomState?.comboCallerId) {
@@ -217,7 +219,7 @@ export function GameTableScreen() {
             Règles
           </button>
         }
-        onBack={() => leaveRoom()}
+        onBack={() => setConfirmLeave(true)}
       />
 
       {/* Top opponent — vertical 2x2 placed just to the right of the discard pile */}
@@ -463,6 +465,20 @@ export function GameTableScreen() {
       <Modal open={showRules} onClose={() => setShowRules(false)} width={560}>
         <RulesQuickRef onClose={() => setShowRules(false)} />
       </Modal>
+
+      <ConfirmModal
+        open={confirmLeave}
+        title="Quitter la partie ?"
+        message="La partie est en cours. Si vous quittez, vos cartes restent jouables le temps de la fin de manche, mais vous perdez la main sur vos actions. Vous pourrez rejoindre via le code du salon."
+        confirmLabel="Quitter la partie"
+        cancelLabel="Continuer à jouer"
+        destructive
+        onCancel={() => setConfirmLeave(false)}
+        onConfirm={() => {
+          setConfirmLeave(false);
+          leaveRoom().catch(() => toast.push('Erreur lors du départ', 'danger'));
+        }}
+      />
     </Page>
   );
 }
