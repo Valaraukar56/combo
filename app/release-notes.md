@@ -1,4 +1,4 @@
-Combo v0.1.9
+Combo v0.1.10
 
-— Notifications de mise à jour plus claires : le résumé affiché ici ne contient plus les détails techniques internes (plus de balises HTML, plus de mentions de fichiers de code).
-— Petits ajustements visuels.
+— Les pouvoirs des têtes rouges (J♥/♦, Q♥/♦, K♥/♦) s'activent maintenant aussi quand vous échangez la carte avec votre pioche : si la tête rouge atterrit sur la défausse via un échange, son pouvoir se déclenche comme une défausse classique.
+— La page « Règles » a été mise à jour pour refléter cette mécanique.

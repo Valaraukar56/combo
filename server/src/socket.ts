@@ -108,9 +108,23 @@ export function setupSocketServer(io: Server): void {
       const result = room.swap(user.id, Number(data?.idx ?? -1));
       if (!result.ok) return ack?.({ ok: false, error: result.error });
       ack?.({ ok: true });
-      io.to(roomChannel(room.code)).emit('game:event', { type: 'swap', actorId: user.id, idx: data?.idx });
-      // Open snap window after a swap (the replaced card hits the discard).
-      openSnapAndAdvance(io, room);
+      io.to(roomChannel(room.code)).emit('game:event', {
+        type: 'swap',
+        actorId: user.id,
+        idx: data?.idx,
+        card: result.replaced,
+        powerType: result.powerType ?? null,
+      });
+      if (result.powerType) {
+        // Power activated by the swapped-out red head — defer the snap window
+        // until after the active player resolves it via game:power:*.
+        broadcastRoomState(io, room);
+        sendPrivateHandsAll(io, room);
+      } else {
+        // Standard flow: open the snap window so anyone can react to the new
+        // discard top.
+        openSnapAndAdvance(io, room);
+      }
     });
 
     socket.on('game:discard', (_: unknown, ack?: AckFn) => {
@@ -517,8 +531,20 @@ function playBotTurn(io: Server, room: Room, botId: string): void {
   });
   const after = decideAfterDraw(room, botId, drawn.card);
   if (after.kind === 'swap' && typeof after.idx === 'number') {
-    room.swap(botId, after.idx);
-    io.to(roomChannel(room.code)).emit('game:event', { type: 'swap', actorId: botId, idx: after.idx });
+    const r = room.swap(botId, after.idx);
+    io.to(roomChannel(room.code)).emit('game:event', {
+      type: 'swap',
+      actorId: botId,
+      idx: after.idx,
+      card: r.replaced,
+      powerType: r.powerType ?? null,
+    });
+    // Bot just kicked a red head into the discard via the swap — auto-resolve
+    // the triggered power exactly like the direct-discard branch does.
+    if (r.powerType) {
+      autoResolveBotPower(io, room, botId, r.powerType);
+      return;
+    }
   } else {
     const r = room.discardDrawn(botId);
     io.to(roomChannel(room.code)).emit('game:event', {

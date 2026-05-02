@@ -217,7 +217,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const onEvent = (ev: GameEvent) => {
       setEvents((prev) => [...prev.slice(-49), ev]);
       const myId = userIdRef.current;
-      if (ev.type === 'discard' && ev.powerType && ev.actorId === myId && ev.card) {
+      // Power activations come from two paths: (a) the active player discards
+      // a red head directly, or (b) the active player swaps a red head out of
+      // their hand into the discard. Both surface as game:event with
+      // powerType set.
+      if (
+        (ev.type === 'discard' || ev.type === 'swap') &&
+        ev.powerType &&
+        ev.actorId === myId &&
+        ev.card
+      ) {
         setPendingPower({ rank: ev.card.rank as string, type: ev.powerType });
       }
       if (ev.type === 'snap') {

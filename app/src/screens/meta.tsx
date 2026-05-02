@@ -76,8 +76,9 @@ export function RulesScreen({ onNavigate }: NavProps) {
             }}
           >
             Seules les <strong style={{ color: 'var(--red)' }}>têtes rouges (♦/♥)</strong> activent
-            un pouvoir lorsqu'elles sont posées sur la défausse (depuis la pioche, pas depuis la
-            défausse).
+            un pouvoir lorsqu'elles atterrissent sur la défausse — que ce soit par défausse directe
+            depuis la pioche, ou en échangeant une carte de votre main qui se retrouve défaussée.
+            Une carte tirée depuis la défausse, en revanche, ne déclenche jamais son pouvoir.
           </p>
           <div
             style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}

@@ -221,7 +221,15 @@ export class Room {
     return { ok: true, card: this.drawnCard };
   }
 
-  swap(playerId: string, idx: number): { ok: boolean; replaced?: Card; error?: string } {
+  swap(
+    playerId: string,
+    idx: number
+  ): {
+    ok: boolean;
+    replaced?: Card;
+    powerType?: ReturnType<typeof powerOf>;
+    error?: string;
+  } {
     if (this.phase !== 'turn') return { ok: false, error: 'wrong_phase' };
     if (!this.isCurrentTurn(playerId)) return { ok: false, error: 'not_your_turn' };
     if (!this.drawnCard) return { ok: false, error: 'no_drawn_card' };
@@ -232,7 +240,22 @@ export class Room {
     p.knownByOwner[idx] = false;
     if (replaced) this.discard.push(replaced);
     this.drawnCard = null;
-    return { ok: true, replaced: replaced ?? undefined };
+    // If the card we just kicked into the discard via the swap is a red head,
+    // activate its power exactly as a direct discard would. The active player
+    // resolves it via game:power:* before the snap window opens.
+    let power: ReturnType<typeof powerOf> = null;
+    if (replaced) {
+      const detected = powerOf(replaced);
+      if (
+        detected &&
+        (replaced.rank === 'J' || replaced.rank === 'Q' || replaced.rank === 'K')
+      ) {
+        this.pendingPower = { rank: replaced.rank, type: detected };
+        this.phase = 'power';
+        power = detected;
+      }
+    }
+    return { ok: true, replaced: replaced ?? undefined, powerType: power };
   }
 
   /** Direct discard of the drawn card. Returns the discarded card and whether a power should activate. */
