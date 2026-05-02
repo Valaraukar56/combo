@@ -31,6 +31,25 @@ npm run start            # node --experimental-sqlite dist/index.js (prod)
 npm run typecheck        # tsc --noEmit
 ```
 
+## Déploiement VPS
+
+Le serveur tourne sur `https://51.68.129.168.sslip.io` géré par **systemctl** (`combo.service`).
+
+Commandes de déploiement (depuis `/home/ubuntu/combo`) :
+
+```bash
+# Si seul app/ a changé (cas le plus fréquent)
+git pull
+npm --prefix app run build
+sudo systemctl restart combo.service
+
+# Si server/ a aussi changé
+git pull
+npm --prefix server run build
+npm --prefix app run build
+sudo systemctl restart combo.service
+```
+
 ## Environment Variables
 
 ### `server/.env`
