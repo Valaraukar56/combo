@@ -209,6 +209,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
           card: ev.card ?? null,
         });
       }
+      if (ev.type === 'perfect-snap') {
+        const room = roomStateRef.current;
+        const t = toastRef.current;
+        const actor = room?.players.find((p) => p.id === ev.actorId);
+        if (ev.actorId === myId) {
+          t.push('🏆 Snap parfait — vous remportez la partie !', 'success');
+        } else if (actor) {
+          t.push(`🏆 ${actor.pseudo} a snappé toutes ses cartes — partie terminée`, 'default');
+        }
+      }
       if (ev.type === 'opponent-peek-resolved' || ev.type === 'swap-resolved') {
         const room = roomStateRef.current;
         const t = toastRef.current;

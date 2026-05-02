@@ -256,6 +256,14 @@ export function setupSocketServer(io: Server): void {
         success: result.success,
         card: result.card,
       });
+      // Perfect snap: a player just emptied their entire hand. Skip the
+      // remaining turns/rounds and end the game immediately — they're the
+      // automatic winner regardless of what was scheduled.
+      if (result.handCleared) {
+        endGameOnPerfectSnap(io, room, user.id);
+        ack?.({ ok: true, success: true, handCleared: true });
+        return;
+      }
       broadcastRoomState(io, room);
       sendPrivateHandsAll(io, room);
       ack?.({ ok: true, success: result.success });
@@ -417,6 +425,26 @@ function advanceTurn(io: Server, room: Room): void {
   }
   broadcastRoomState(io, room);
   runBotTurnIfNeeded(io, room);
+}
+
+/**
+ * Special end-of-game flow triggered when a player snaps their last card.
+ * Cancels every pending timer (snap window, power timeout, etc.), scores the
+ * round, and finalizes the whole game — even if more rounds were scheduled.
+ */
+function endGameOnPerfectSnap(io: Server, room: Room, winnerId: string): void {
+  room.cancelAllTimers();
+  const results = room.endRound();
+  io.to(roomChannel(room.code)).emit('game:event', {
+    type: 'perfect-snap',
+    actorId: winnerId,
+  });
+  io.to(roomChannel(room.code)).emit('game:round-end', { results });
+  broadcastRoomState(io, room);
+  sendPrivateHandsAll(io, room);
+  // Show round results for ~6s, then jump straight to game-end (skip remaining
+  // rounds — the perfect snap ends the entire match).
+  setTimeout(() => finalizeAndPersist(io, room), 6000);
 }
 
 function finalizeAndPersist(io: Server, room: Room): void {

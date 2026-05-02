@@ -184,6 +184,12 @@ export class Room {
     this.powerTimeout = null;
   }
 
+  /** Public alias for clearTimers — used by socket.ts to interrupt timers on a
+   *  forced end (perfect snap, host disconnect, etc.). */
+  cancelAllTimers(): void {
+    this.clearTimers();
+  }
+
   destroy(): void {
     this.clearTimers();
     this.disconnectTimers.forEach((t) => clearTimeout(t));
@@ -347,7 +353,13 @@ export class Room {
   attemptSnap(
     playerId: string,
     cardIdx: number
-  ): { ok: boolean; success: boolean; card?: Card; error?: string } {
+  ): {
+    ok: boolean;
+    success: boolean;
+    card?: Card;
+    handCleared?: boolean;
+    error?: string;
+  } {
     const snappable: RoomPhase[] = ['turn', 'snap-window', 'power', 'combo-final'];
     if (!snappable.includes(this.phase)) {
       return { ok: false, success: false, error: 'wrong_phase' };
@@ -366,7 +378,10 @@ export class Room {
       player.hand[cardIdx] = null;
       player.knownByOwner[cardIdx] = false;
       this.discard.push(candidate);
-      return { ok: true, success: true, card: candidate };
+      // Perfect snap: every slot is now empty. Caller (socket layer) will end
+      // the game immediately.
+      const handCleared = player.hand.every((c) => c === null);
+      return { ok: true, success: true, card: candidate, handCleared };
     }
     // Failure: penalty card from deck added at the end (unknown to them)
     this.refillDeckIfNeeded();
