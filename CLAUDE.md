@@ -172,7 +172,7 @@ Les mises à jour sont distribuées via **GitHub Releases** (repo `Valaraukar56/
 > ⚠️ À faire **en local sur le PC de dev** (pas sur le VPS). Nécessite PowerShell en mode **administrateur**.
 
 1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`) — c'est Claude qui fait ce changement, sauf si l'utilisateur lance `npm version patch` lui-même.
-2. **Réécrire `app/release-notes.md`** avec un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier est injecté tel quel dans la release GitHub et s'affiche dans la modale de mise à jour côté joueur — donc rester concis et clair.
+2. **Réécrire `app/release-notes.md`** avec un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier est injecté tel quel dans la release GitHub et s'affiche dans la modale de mise à jour côté joueur — donc rester concis et clair. **Format imposé** : commencer par `Combo v{version}` puis les puces, et **toujours terminer par une ligne `Auteur : Vala`**. Le script `publish.cjs` refuse de publier si la version courante n'apparaît pas dans le fichier (garde-fou anti-notes-périmées).
 3. Committer + pusher (version + notes) sur main.
 4. Donner la commande suivante à l'utilisateur pour qu'il la lance en local dans PowerShell admin :
 ```powershell
