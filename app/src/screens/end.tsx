@@ -192,6 +192,7 @@ export function EndGameScreen({ onBackLobby }: { onBackLobby: () => void }) {
 
   const sorted = [...(finalResults ?? [])].sort((a, b) => a.totalScore - b.totalScore);
   const champion = sorted[0];
+  const isViewerWinner = !!champion && champion.playerId === user.id;
 
   const handleBack = async () => {
     await leaveRoom();
@@ -243,8 +244,11 @@ export function EndGameScreen({ onBackLobby }: { onBackLobby: () => void }) {
               zIndex: 1,
             }}
           >
-            <div className="eyebrow" style={{ color: 'var(--gold)', marginBottom: 12 }}>
-              Vainqueur
+            <div
+              className="eyebrow"
+              style={{ color: 'var(--gold)', marginBottom: 12 }}
+            >
+              {isViewerWinner ? 'Vous remportez la partie' : 'Vainqueur'}
             </div>
             <div
               style={{
@@ -258,14 +262,15 @@ export function EndGameScreen({ onBackLobby }: { onBackLobby: () => void }) {
               <h1
                 className="display-italic"
                 style={{
-                  fontSize: 88,
+                  fontSize: isViewerWinner ? 128 : 88,
                   color: 'var(--gold-bright)',
                   margin: 0,
                   lineHeight: 0.95,
-                  textShadow: '0 4px 30px rgba(200, 169, 110, 0.3)',
+                  textShadow: '0 4px 40px rgba(200, 169, 110, 0.45)',
+                  letterSpacing: isViewerWinner ? '0.02em' : 'normal',
                 }}
               >
-                {champion.pseudo}
+                {isViewerWinner ? 'Victoire' : champion.pseudo}
               </h1>
               <div
                 style={{
@@ -275,7 +280,9 @@ export function EndGameScreen({ onBackLobby }: { onBackLobby: () => void }) {
                   fontFamily: 'var(--font-display)',
                 }}
               >
-                {champion.totalScore} points
+                {isViewerWinner
+                  ? `${champion.totalScore} points — bravo ${champion.pseudo}`
+                  : `${champion.totalScore} points`}
               </div>
             </div>
           </div>
