@@ -167,29 +167,56 @@ Si tu changes l'icône, remplace les **deux** fichiers (le PNG en 512×512 idéa
 
 Les mises à jour sont distribuées via **GitHub Releases** (repo `Valaraukar56/combo`). Au démarrage, l'app vérifie silencieusement s'il y a une nouvelle version. Si oui, elle télécharge en arrière-plan et propose un redémarrage via une dialog.
 
-**Pour publier une nouvelle version :**
+#### Ce que Claude peut faire tout seul
 
-> ⚠️ À faire **en local sur le PC de dev** (pas sur le VPS). Nécessite PowerShell en mode **administrateur**.
+Le shell Bash exposé à Claude tourne **sur la machine Windows de Vala** avec accès direct à `D:\PROJET CODE TA MERE\COMBO`. Donc Claude peut enchaîner toute la chaîne de release lui-même quand Vala lui dit « publie » :
 
-1. Monter `"version"` dans `app/package.json` (ex: `"0.1.0"` → `"0.1.1"`) — c'est Claude qui fait ce changement, sauf si l'utilisateur lance `npm version patch` lui-même.
-2. **Réécrire `app/release-notes.md`** avec un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier est injecté tel quel dans la release GitHub et s'affiche dans la modale de mise à jour côté joueur — donc rester concis et clair. **Format imposé** : commencer par `Combo v{version}` puis les puces, et **toujours terminer par une ligne `Auteur : Vala`**. Le script `publish.cjs` refuse de publier si la version courante n'apparaît pas dans le fichier (garde-fou anti-notes-périmées).
-3. Committer + pusher (version + notes) sur main.
-4. Donner la commande suivante à l'utilisateur pour qu'il la lance en local dans PowerShell admin :
-```powershell
-cd "D:\PROJET CODE TA MERE\COMBO\app"
-git pull            # impératif — sinon le bundle peut contenir l'ancien code
+```bash
+cd "D:/PROJET CODE TA MERE/COMBO/app"
+git pull
+# bump version (npm version patch dans une working tree dirty ne commit/tag pas tout seul,
+# faire le commit + tag à la main si besoin)
+git add release-notes.md && git commit -m "docs: release notes for X.Y.Z"
+git add package.json package-lock.json && git commit -m "X.Y.Z"
+git tag vX.Y.Z
+git push origin main
+git push origin vX.Y.Z
 npm run electron:publish
 ```
+
+Tous les secrets (`GH_TOKEN`, `VITE_DESKTOP_CLIENT_SECRET`) sont dans `app/.env` qui est lu par `scripts/publish.cjs` — Claude n'a pas besoin de les voir, juste de lancer la commande.
+
+#### Ce que Claude ne peut PAS faire
+
+- **Restart le service sur le VPS** : pas d'accès SSH au VPS (`ubuntu@vps-ecfe91a2`). Pour activer une nouvelle version du serveur en prod, Vala doit lui-même se SSH et lancer la séquence de déploiement (cf section « Déploiement VPS »).
+
+#### Procédure de release
+
+1. Monter `"version"` dans `app/package.json` (`npm version patch` ne marche que si la working tree est clean — sinon faire à la main).
+2. **Réécrire `app/release-notes.md`** : un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier devient le body GitHub et s'affiche dans la modale d'update — donc rester concis et clair. **Format imposé** : commencer par `Combo v{version}` puis les puces, et **toujours terminer par une ligne `Auteur : Vala`**. Le script `publish.cjs` refuse de publier si la version courante n'apparaît pas dans le fichier (garde-fou anti-notes-périmées).
+3. Committer + pusher (notes + version + tag) sur main.
+4. `npm run electron:publish` — Claude le lance directement, ou Vala depuis PowerShell admin.
+
 `app/.env` doit contenir au minimum `GH_TOKEN`, `VITE_API_URL` et `VITE_DESKTOP_CLIENT_SECRET` (cf section Environment Variables). Tous sont chargés par `scripts/publish.cjs` au runtime — `VITE_*` sont consommés par Vite au build, `GH_TOKEN` par electron-builder pour l'upload.
 
 > Le contenu de `app/release-notes.md` est pris en compte automatiquement par `scripts/publish.cjs` via `--config.releaseInfo.releaseNotesFile`. Si le fichier est absent, electron-builder retombe sur les messages de commit (à éviter).
 
-**Vérifier qu'un publish est sain avant d'installer :**
-```powershell
-Select-String -Path "dist/assets/index-*.js" -Pattern "Combo-Client"   # doit matcher
-Select-String -Path "dist/assets/index-*.js" -Pattern "<8 premiers chars du secret>"   # doit matcher
+#### Vérifier qu'un publish est sain avant d'installer
+
+```bash
+# depuis le shell Claude (bash) ou Vala (PowerShell)
+grep -c 'X-Combo-Client' app/dist/assets/index-*.js   # doit être ≥ 1
+grep -c 'X-Combo-Version' app/dist/assets/index-*.js  # doit être ≥ 1 (depuis 0.1.20)
 ```
-Si l'un des deux ne matche pas, le `.exe` publié est cassé et tous les joueurs auront du 403. Bumper la version et republier.
+
+Si l'un ne matche pas, le `.exe` publié est cassé et tous les joueurs auront du 403. Bumper la version et republier.
+
+#### Ordre déploiement quand le serveur change aussi
+
+Le serveur a un check de version (rejette toute version `< latest GitHub release`). Conséquence : déployer le serveur **avant** que le `.exe` ne soit publié bloque tout le monde le temps que l'auto-update kicke. Toujours dans l'ordre :
+1. Publier le `.exe` (`npm run electron:publish`).
+2. Déployer le serveur (`git pull && npm --prefix server run build && sudo systemctl restart combo.service`).
+3. Les clients déjà installés voient le banner d'update au prochain lancement et migrent automatiquement.
 
 ## Points d'attention
 
