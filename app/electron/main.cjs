@@ -1,4 +1,5 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 
 function createWindow() {
@@ -16,9 +17,29 @@ function createWindow() {
   });
 
   win.loadFile(path.join(__dirname, '../dist/index.html'));
+  return win;
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  const win = createWindow();
+
+  // Vérifie les mises à jour silencieusement au démarrage.
+  autoUpdater.checkForUpdatesAndNotify();
+
+  autoUpdater.on('update-downloaded', () => {
+    dialog
+      .showMessageBox(win, {
+        type: 'info',
+        title: 'Mise à jour disponible',
+        message: 'Une nouvelle version de Combo est prête. Redémarrer maintenant ?',
+        buttons: ['Redémarrer', 'Plus tard'],
+        defaultId: 0,
+      })
+      .then(({ response }) => {
+        if (response === 0) autoUpdater.quitAndInstall();
+      });
+  });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

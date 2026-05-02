@@ -11,9 +11,11 @@
     "typecheck": "tsc -b --noEmit",
     "electron:preview": "npm run build && electron .",
     "electron:package": "npm run build && electron-packager . Combo --platform=win32 --arch=x64 --out=release --overwrite --ignore=node_modules --ignore=src --ignore=release --ignore=.env",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "npm run build && electron-builder",
+    "electron:publish": "npm run build && electron-builder --publish always"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "socket.io-client": "^4.8.3"
@@ -38,6 +40,11 @@
       "dist/**",
       "electron/**"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "Valaraukar56",
+      "repo": "combo"
+    },
     "win": {
       "target": "nsis"
     },
