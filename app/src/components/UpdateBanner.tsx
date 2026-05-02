@@ -1,10 +1,39 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from './ui';
 
 interface UpdateInfo {
   version: string | null;
   releaseName: string | null;
   releaseNotes: string | null;
+}
+
+/**
+ * GitHub renders release notes (= the commit message) as HTML — `<p>...</p>`,
+ * `<br />`, etc. Electron-updater forwards that HTML verbatim, so without
+ * cleaning we'd display the raw markup in our modal. This converts the markup
+ * to plain text, drops auto-generated trailers, and appends a stable author
+ * line so the modal stays human-readable.
+ */
+function cleanReleaseNotes(raw: string | null): string | null {
+  if (!raw) return null;
+  const text = raw
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/?(p|div|span|strong|em|ul|ol|li|h[1-6])[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .split('\n')
+    .filter((line) => !/^\s*co-authored-by:/i.test(line))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (!text) return 'Auteur : Vala';
+  return `${text}\n\nAuteur : Vala`;
 }
 
 /**
@@ -26,6 +55,11 @@ export function UpdateBanner() {
     });
     return off;
   }, []);
+
+  const cleanedNotes = useMemo(
+    () => (info ? cleanReleaseNotes(info.releaseNotes) : null),
+    [info]
+  );
 
   if (!info || dismissed) return null;
 
@@ -119,7 +153,7 @@ export function UpdateBanner() {
           )}
         </p>
 
-        {info.releaseNotes && (
+        {cleanedNotes && (
           <div
             style={{
               marginTop: 18,
@@ -135,7 +169,7 @@ export function UpdateBanner() {
               whiteSpace: 'pre-wrap',
             }}
           >
-            {info.releaseNotes}
+            {cleanedNotes}
           </div>
         )}
 

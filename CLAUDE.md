@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with this repository.
 
+## Commit conventions
+
+- **Never add a `Co-Authored-By: Claude` trailer.** The user (Vala) is the sole author of every commit. The release notes shown in the auto-update modal pull from the GitHub release body, and that trailer leaks into the player-facing text.
+- Keep commit messages plain (no HTML). GitHub renders them as HTML in release notes — `<p>` and `<br />` would appear literally in the in-app modal otherwise.
+
 ## Monorepo Structure
 
 Two independent packages — always `cd` into the right one before running commands:
