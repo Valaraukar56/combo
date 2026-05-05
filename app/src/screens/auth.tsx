@@ -200,7 +200,7 @@ export function LoginScreen({ onNavigate }: NavProps) {
       if (err instanceof ApiError && err.code === 'invalid_credentials') {
         setError('Pseudo ou mot de passe incorrect');
       } else if (err instanceof ApiError && err.code === 'version_outdated') {
-        setError('Version trop ancienne — mets à jour l'application');
+        setError("Version trop ancienne — mets à jour l'application");
       } else {
         setError('Connexion impossible — réessayez');
       }
