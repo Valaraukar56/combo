@@ -119,8 +119,7 @@ export function HomeScreen({ onNavigate }: NavProps) {
             fontFamily: 'var(--font-mono)',
           }}
         >
-          <span>© Combo · 2025</span>
-          <span style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}>v{APP_VERSION}</span>
+<span style={{ letterSpacing: '0.2em', textTransform: 'uppercase' }}>v{APP_VERSION}</span>
         </footer>
       </div>
     </Page>
