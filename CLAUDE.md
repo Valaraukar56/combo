@@ -193,7 +193,7 @@ Tous les secrets (`GH_TOKEN`, `VITE_DESKTOP_CLIENT_SECRET`) sont dans `app/.env`
 #### Procédure de release
 
 1. Monter `"version"` dans `app/package.json` (`npm version patch` ne marche que si la working tree est clean — sinon faire à la main).
-2. **Réécrire `app/release-notes.md`** : un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier devient le body GitHub et s'affiche dans la modale d'update — donc rester concis et clair. **Format imposé** : commencer par `Combo v{version}` puis les puces, et **toujours terminer par une ligne `Auteur : Vala`**. Le script `publish.cjs` refuse de publier si la version courante n'apparaît pas dans le fichier (garde-fou anti-notes-périmées).
+2. **Réécrire `app/release-notes.md`** : un résumé court, en français, orienté joueur (pas de fichiers, pas de jargon technique). Ce fichier devient le body GitHub et s'affiche dans la modale d'update — donc rester concis et clair. **Format imposé** : commencer par `Combo v{version}` puis les puces. Le script `publish.cjs` refuse de publier si la version courante n'apparaît pas dans le fichier (garde-fou anti-notes-périmées). Ne pas inclure de ligne « Auteur : Vala » — electron-builder l'injecte aussi dans le `latest.yml`, ce qui la fait apparaître deux fois dans la modale d'update.
 3. Committer + pusher (notes + version + tag) sur main.
 4. `npm run electron:publish` — Claude le lance directement, ou Vala depuis PowerShell admin.
 
