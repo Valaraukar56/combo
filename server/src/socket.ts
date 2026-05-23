@@ -557,25 +557,25 @@ async function playBotTurn(io: Server, room: Room, botId: string): Promise<void>
   // --- Opening decision (draw / combo) ---
   let openingKind: 'draw-deck' | 'draw-discard' | 'combo' = 'draw-deck';
 
-  // call_combo is only legal once at least one turn has been played in the round
-  // (discard non-empty). Prevents the bot from calling combo with no information.
-  const openingLegal = room.discard.length > 0 ? [0, 1, 2] : [0, 1];
-  const mlOpening = await askMLBot(
-    buildMLState(room, botId, 0),
-    difficulty,
-    openingLegal,
-  );
-
-  if (mlOpening === 'call_combo') {
+  // The heuristic decides combo (the ML model hasn't learned reliable combo timing).
+  // If the heuristic wants to combo, do it immediately — skip the ML call.
+  const heuristicOpening = decideOpening(room, botId);
+  if (heuristicOpening.kind === 'combo') {
     openingKind = 'combo';
-  } else if (mlOpening === 'draw_discard') {
-    openingKind = 'draw-discard';
-  } else if (mlOpening === 'draw_deck') {
-    openingKind = 'draw-deck';
   } else {
-    // Fallback to heuristics
-    const heuristic = decideOpening(room, botId);
-    openingKind = heuristic.kind as 'draw-deck' | 'draw-discard' | 'combo';
+    // ML decides between draw_deck (0) and draw_discard (1) only.
+    const mlOpening = await askMLBot(
+      buildMLState(room, botId, 0),
+      difficulty,
+      [0, 1],
+    );
+    if (mlOpening === 'draw_discard') {
+      openingKind = 'draw-discard';
+    } else if (mlOpening === 'draw_deck') {
+      openingKind = 'draw-deck';
+    } else {
+      openingKind = heuristicOpening.kind as 'draw-deck' | 'draw-discard';
+    }
   }
 
   if (openingKind === 'combo') {
