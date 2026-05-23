@@ -619,6 +619,10 @@ async function playBotTurn(io: Server, room: Room, botId: string): Promise<void>
 
   if (afterKind === 'swap') {
     const r = room.swap(botId, swapIdx);
+    if (!r.ok) {
+      advanceTurn(io, room);
+      return;
+    }
     io.to(roomChannel(room.code)).emit('game:event', {
       type: 'swap',
       actorId: botId,
@@ -632,6 +636,10 @@ async function playBotTurn(io: Server, room: Room, botId: string): Promise<void>
     }
   } else {
     const r = room.discardDrawn(botId);
+    if (!r.ok) {
+      advanceTurn(io, room);
+      return;
+    }
     io.to(roomChannel(room.code)).emit('game:event', {
       type: 'discard',
       actorId: botId,
