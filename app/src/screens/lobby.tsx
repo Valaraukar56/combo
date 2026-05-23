@@ -242,9 +242,9 @@ export function LobbyScreen({ onNavigate }: NavProps) {
       <Modal open={showSoloDifficulty} onClose={() => setShowSoloDifficulty(false)}>
         <SoloDifficultyForm
           onCancel={() => setShowSoloDifficulty(false)}
-          onStart={(difficulty) => {
+          onStart={(maxPlayers, difficulty) => {
             setShowSoloDifficulty(false);
-            handleCreate({ maxPlayers: 4, rounds: 1, isPrivate: true, isSolo: true, botDifficulty: difficulty });
+            handleCreate({ maxPlayers, rounds: 1, isPrivate: true, isSolo: true, botDifficulty: difficulty });
           }}
         />
       </Modal>
@@ -496,13 +496,25 @@ function SoloDifficultyForm({
   onStart,
 }: {
   onCancel: () => void;
-  onStart: (difficulty: 'easy' | 'medium' | 'hard') => void;
+  onStart: (maxPlayers: number, difficulty: 'easy' | 'medium' | 'hard') => void;
 }) {
+  const [maxPlayers, setMaxPlayers] = useState(4);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   return (
     <>
-      <SectionHeading eyebrow="Partie solo" title="Difficulté des bots" level="h2" />
+      <SectionHeading eyebrow="Partie solo" title="Configurer la partie" level="h2" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 24 }}>
+        <Field label="Nombre de joueurs (vous + bots)">
+          <SegmentedChoice
+            value={maxPlayers}
+            options={[
+              { v: 2, label: '2' },
+              { v: 3, label: '3' },
+              { v: 4, label: '4' },
+            ]}
+            onChange={setMaxPlayers}
+          />
+        </Field>
         <Field label="Niveau de l'IA">
           <SegmentedChoice
             value={difficulty}
@@ -524,7 +536,7 @@ function SoloDifficultyForm({
         <Button variant="ghost" onClick={onCancel}>
           Annuler
         </Button>
-        <Button variant="primary" onClick={() => onStart(difficulty)}>
+        <Button variant="primary" onClick={() => onStart(maxPlayers, difficulty)}>
           Jouer →
         </Button>
       </div>
