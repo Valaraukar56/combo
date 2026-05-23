@@ -122,10 +122,9 @@ class ComboEnv(gym.Env):
             return 0.0, False
 
         if action == 1:  # draw_discard
-            if self.discard:
-                self.drawn_card = self.discard.pop()
-            else:
-                self.drawn_card = (0, 'S')
+            if not self.discard:
+                return 0.0, False  # masked out, shouldn't happen
+            self.drawn_card = self.discard.pop()
             self.drawn_from_discard = True
             self.phase = PHASE_AFTER_DRAW
             return 0.0, False
