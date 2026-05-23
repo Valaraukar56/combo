@@ -106,8 +106,8 @@ def action(req: ActionRequest):
         obs = state_to_obs(req.state)
         idx = predict_action(model, obs, legal)
 
-    # Safety: ensure returned action is legal
-    if idx not in legal:
-        idx = legal[0]
+    # Safety: ensure returned action is legal and in bounds
+    if idx not in legal or not (0 <= idx < len(ACTION_NAMES)):
+        idx = next((i for i in legal if 0 <= i < len(ACTION_NAMES)), 0)
 
     return ActionResponse(action_index=idx, action_name=ACTION_NAMES[idx])
