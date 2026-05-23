@@ -546,13 +546,24 @@ async function playBotTurn(io: Server, room: Room, botId: string): Promise<void>
 
   const difficulty = room.config.botDifficulty ?? 'medium';
 
+  // Mirror heuristic: bots "peek" their first 2 cards during the memorize phase.
+  // This must happen before building the ML state so the model sees actual card
+  // values instead of all-unknown (-1), which would mislead it into calling combo.
+  const botPlayer = room.players.find((p) => p.id === botId);
+  if (botPlayer) {
+    botPlayer.knownByOwner = botPlayer.hand.map((_, i) => i < 2 || (botPlayer.knownByOwner[i] ?? false));
+  }
+
   // --- Opening decision (draw / combo) ---
   let openingKind: 'draw-deck' | 'draw-discard' | 'combo' = 'draw-deck';
 
+  // call_combo is only legal once at least one turn has been played in the round
+  // (discard non-empty). Prevents the bot from calling combo with no information.
+  const openingLegal = room.discard.length > 0 ? [0, 1, 2] : [0, 1];
   const mlOpening = await askMLBot(
     buildMLState(room, botId, 0),
     difficulty,
-    [0, 1, 2], // draw_deck, draw_discard, call_combo
+    openingLegal,
   );
 
   if (mlOpening === 'call_combo') {
