@@ -83,3 +83,5 @@ export interface RevealPayload {
   ownerId: string;
   cardIdx: number;
 }
+
+export type BotDifficulty = 'easy' | 'medium' | 'hard';

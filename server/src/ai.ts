@@ -2,6 +2,57 @@ import { cardValue } from './cards.js';
 import type { Room } from './room.js';
 import type { Card } from './types.js';
 
+// ---- ML Bot integration ----
+
+const ML_API = 'http://localhost:8000';
+
+export interface MLBotState {
+  hand: number[];        // 4 values: card value (0–13) or -1 if unknown/hole
+  discard_top: number;   // value of top discard card (0 if empty)
+  drawn_card: number;    // value of drawn card (-1 if not yet drawn)
+  bot_total: number;     // bot cumulative score
+  opp_total: number;     // opponent cumulative score
+  opp_count: number;     // number of opponent's remaining cards
+  round_num: number;     // current round number
+  phase: number;         // 0=TURN_START, 1=AFTER_DRAW, 2=SNAP, 3=POWER
+}
+
+export type MLAction =
+  | 'draw_deck' | 'draw_discard' | 'call_combo'
+  | 'swap_0' | 'swap_1' | 'swap_2' | 'swap_3' | 'discard'
+  | 'snap_0' | 'snap_1' | 'snap_2' | 'snap_3' | 'pass_snap'
+  | 'peek_own_0' | 'peek_own_1' | 'peek_own_2' | 'peek_own_3'
+  | 'peek_opp_0' | 'peek_opp_1' | 'peek_opp_2' | 'peek_opp_3'
+  | 'swap_opp_0' | 'swap_opp_1' | 'swap_opp_2' | 'swap_opp_3';
+
+/**
+ * Ask the Python ML microservice for the bot's next action.
+ * Returns null on timeout or if service is unavailable (caller falls back to heuristics).
+ */
+export async function askMLBot(
+  state: MLBotState,
+  difficulty: string,
+  legalActions: number[],
+): Promise<MLAction | null> {
+  try {
+    const res = await fetch(`${ML_API}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        state,
+        difficulty,
+        legal_actions: legalActions,
+      }),
+      signal: AbortSignal.timeout(500),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { action_index: number; action_name: string };
+    return data.action_name as MLAction;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Very simple bot AI for Solo vs IA. Each bot has perfect memory of its own
  * cards (we mark them as known). Heuristics:
