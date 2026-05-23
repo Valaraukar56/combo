@@ -1,0 +1,13 @@
+[Unit]
+Description=Combo AI Microservice (PPO bot)
+After=network.target combo.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/combo/ml
+ExecStart=/home/ubuntu/combo/ml/venv/bin/uvicorn server:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
