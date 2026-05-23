@@ -38,7 +38,6 @@ def train_level(level: str):
         ent_coef=cfg["ent_coef"],
         n_steps=2048,
         batch_size=64,
-        tensorboard_log=f"./logs/{level}",
     )
     model.learn(total_timesteps=cfg["timesteps"])
 
