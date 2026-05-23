@@ -41,5 +41,5 @@ Thumbs.db
 ml/venv/
 ml/__pycache__/
 ml/**/__pycache__/
-*.pyc
-*.pyo
+ml/**/*.pyc
+ml/**/*.pyo
