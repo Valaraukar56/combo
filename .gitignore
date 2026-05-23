@@ -36,3 +36,10 @@ Thumbs.db
 
 # Original design bundle (large, kept for reference only)
 .design-bundle/
+
+# Python ML layer
+ml/venv/
+ml/__pycache__/
+ml/**/__pycache__/
+*.pyc
+*.pyo
