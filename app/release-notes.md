@@ -1,3 +1,3 @@
-Combo v0.1.22
+Combo v0.1.23
 
-— Petit nettoyage de l'écran de connexion.
+— Bot solo : vous pouvez maintenant choisir la difficulté de l'IA (Facile / Moyen / Difficile) avant de lancer une partie solo.

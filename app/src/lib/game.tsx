@@ -114,6 +114,7 @@ interface CreateRoomCfg {
   rounds: number;
   isPrivate: boolean;
   isSolo: boolean;
+  botDifficulty?: 'easy' | 'medium' | 'hard';
 }
 
 /* ── Context shape ── */

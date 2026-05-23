@@ -29,6 +29,7 @@ export function LobbyScreen({ onNavigate }: NavProps) {
   const [showJoin, setShowJoin] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showNewGameChoice, setShowNewGameChoice] = useState(false);
+  const [showSoloDifficulty, setShowSoloDifficulty] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [lastCode, setLastCode] = useState<string | null>(() => getLastRoomCode());
 
@@ -58,7 +59,7 @@ export function LobbyScreen({ onNavigate }: NavProps) {
     setLastCode(null);
   };
 
-  const handleCreate = async (cfg: { maxPlayers: number; rounds: number; isPrivate: boolean; isSolo: boolean }) => {
+  const handleCreate = async (cfg: { maxPlayers: number; rounds: number; isPrivate: boolean; isSolo: boolean; botDifficulty?: 'easy' | 'medium' | 'hard' }) => {
     try {
       const code = await createRoom(cfg);
       setShowCreate(false);
@@ -79,7 +80,7 @@ export function LobbyScreen({ onNavigate }: NavProps) {
 
   const handleSolo = () => {
     setShowNewGameChoice(false);
-    handleCreate({ maxPlayers: 4, rounds: 1, isPrivate: true, isSolo: true });
+    setShowSoloDifficulty(true);
   };
 
   const handleChooseFriends = () => {
@@ -236,6 +237,15 @@ export function LobbyScreen({ onNavigate }: NavProps) {
           onCancel={() => setShowNewGameChoice(false)}
           onChooseSolo={handleSolo}
           onChooseFriends={handleChooseFriends}
+        />
+      </Modal>
+      <Modal open={showSoloDifficulty} onClose={() => setShowSoloDifficulty(false)}>
+        <SoloDifficultyForm
+          onCancel={() => setShowSoloDifficulty(false)}
+          onStart={(difficulty) => {
+            setShowSoloDifficulty(false);
+            handleCreate({ maxPlayers: 4, rounds: 1, isPrivate: true, isSolo: true, botDifficulty: difficulty });
+          }}
         />
       </Modal>
       <Modal open={showCreate} onClose={() => setShowCreate(false)}>
@@ -477,6 +487,48 @@ function ActionTile({ eyebrow, title, desc, cta, accent, onClick, cards }: Actio
         {cta}
       </div>
     </button>
+  );
+}
+
+/* ──────── Solo Difficulty form ──────── */
+function SoloDifficultyForm({
+  onCancel,
+  onStart,
+}: {
+  onCancel: () => void;
+  onStart: (difficulty: 'easy' | 'medium' | 'hard') => void;
+}) {
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  return (
+    <>
+      <SectionHeading eyebrow="Partie solo" title="Difficulté des bots" level="h2" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 24 }}>
+        <Field label="Niveau de l'IA">
+          <SegmentedChoice
+            value={difficulty}
+            options={[
+              { v: 'easy' as const, label: 'Facile' },
+              { v: 'medium' as const, label: 'Moyen' },
+              { v: 'hard' as const, label: 'Difficile' },
+            ]}
+            onChange={setDifficulty}
+          />
+        </Field>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', fontStyle: 'italic' }}>
+          {difficulty === 'easy' && 'Le bot joue de façon basique — idéal pour apprendre.'}
+          {difficulty === 'medium' && 'Le bot joue correctement — un bon challenge.'}
+          {difficulty === 'hard' && 'Le bot joue de façon optimale — bonne chance.'}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 12, marginTop: 32, justifyContent: 'flex-end' }}>
+        <Button variant="ghost" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button variant="primary" onClick={() => onStart(difficulty)}>
+          Jouer →
+        </Button>
+      </div>
+    </>
   );
 }
 
