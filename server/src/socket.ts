@@ -1,6 +1,8 @@
 import type { DefaultEventsMap, Server, Socket } from 'socket.io';
 import { verifyToken } from './auth.js';
-import { decideAfterDraw, decideOpening, pickRandomBotName } from './ai.js';
+import { askMLBot, decideAfterDraw, decideOpening, pickRandomBotName } from './ai.js';
+import type { MLBotState } from './ai.js';
+import { cardValue } from './cards.js';
 import { createRoom, deleteRoom, getRoom } from './rooms.js';
 import { Room, newPlayerId } from './room.js';
 import { recordGameOutcome } from './stats.js';
@@ -364,12 +366,17 @@ function leaveRoom(io: Server, socket: Sock): void {
 
 function normalizeConfig(cfg: Partial<RoomConfig>): RoomConfig {
   const isSolo = !!cfg.isSolo;
+  const validDifficulties = ['easy', 'medium', 'hard'] as const;
+  const botDifficulty = validDifficulties.includes(cfg.botDifficulty as 'easy' | 'medium' | 'hard')
+    ? (cfg.botDifficulty as 'easy' | 'medium' | 'hard')
+    : 'medium';
   return {
     maxPlayers: clamp(Number(cfg.maxPlayers ?? 4), 2, 4),
     // Solo (vs IA) is locked to a single round — it's a quick training mode.
     rounds: isSolo ? 1 : clamp(Number(cfg.rounds ?? 5), 1, 10),
     isPrivate: cfg.isPrivate !== false,
     isSolo,
+    botDifficulty,
   };
 }
 
@@ -508,10 +515,59 @@ function runBotTurnIfNeeded(io: Server, room: Room): void {
   setTimeout(() => playBotTurn(io, room, current.id), 1200);
 }
 
-function playBotTurn(io: Server, room: Room, botId: string): void {
+function buildMLState(room: Room, botId: string, phase: number): MLBotState {
+  const bot = room.players.find((p) => p.id === botId);
+  const opp = room.players.find((p) => p.id !== botId && !p.isBot);
+  const hand = bot
+    ? bot.hand.map((card, i) => {
+        if (!card) return -1;
+        return bot.knownByOwner[i] ? cardValue(card) : -1;
+      })
+    : [-1, -1, -1, -1];
+  // Pad to 4 if needed
+  while (hand.length < 4) hand.push(-1);
+  const discardTop =
+    room.discard.length > 0 ? cardValue(room.discard[room.discard.length - 1]) : 0;
+  const drawnCard = room.drawnCard ? cardValue(room.drawnCard) : -1;
+  return {
+    hand: hand.slice(0, 4),
+    discard_top: discardTop,
+    drawn_card: drawnCard,
+    bot_total: bot?.totalScore ?? 0,
+    opp_total: opp?.totalScore ?? 0,
+    opp_count: opp ? opp.hand.filter((c) => c !== null).length : 0,
+    round_num: room.round,
+    phase,
+  };
+}
+
+async function playBotTurn(io: Server, room: Room, botId: string): Promise<void> {
   if (!room.isCurrentTurn(botId)) return;
-  const opening = decideOpening(room, botId);
-  if (opening.kind === 'combo') {
+
+  const difficulty = room.config.botDifficulty ?? 'medium';
+
+  // --- Opening decision (draw / combo) ---
+  let openingKind: 'draw-deck' | 'draw-discard' | 'combo' = 'draw-deck';
+
+  const mlOpening = await askMLBot(
+    buildMLState(room, botId, 0),
+    difficulty,
+    [0, 1, 2], // draw_deck, draw_discard, call_combo
+  );
+
+  if (mlOpening === 'call_combo') {
+    openingKind = 'combo';
+  } else if (mlOpening === 'draw_discard') {
+    openingKind = 'draw-discard';
+  } else if (mlOpening === 'draw_deck') {
+    openingKind = 'draw-deck';
+  } else {
+    // Fallback to heuristics
+    const heuristic = decideOpening(room, botId);
+    openingKind = heuristic.kind as 'draw-deck' | 'draw-discard' | 'combo';
+  }
+
+  if (openingKind === 'combo') {
     const result = room.callCombo(botId);
     if (result.ok) {
       io.to(roomChannel(room.code)).emit('game:event', { type: 'combo', actorId: botId });
@@ -519,28 +575,57 @@ function playBotTurn(io: Server, room: Room, botId: string): void {
     advanceTurn(io, room);
     return;
   }
-  const drawn = room.draw(botId, opening.kind === 'draw-discard' ? 'discard' : 'deck');
+
+  const drawn = room.draw(botId, openingKind === 'draw-discard' ? 'discard' : 'deck');
   if (!drawn.ok || !drawn.card) {
     advanceTurn(io, room);
     return;
   }
+
   io.to(roomChannel(room.code)).emit('game:event', {
     type: 'bot-drew',
     actorId: botId,
-    fromDiscard: opening.kind === 'draw-discard',
+    fromDiscard: openingKind === 'draw-discard',
   });
-  const after = decideAfterDraw(room, botId, drawn.card);
-  if (after.kind === 'swap' && typeof after.idx === 'number') {
-    const r = room.swap(botId, after.idx);
+
+  // --- After-draw decision (swap / discard) ---
+  const handSize = room.players.find((p) => p.id === botId)?.hand.length ?? 4;
+  const swapActions = Array.from({ length: handSize }, (_, i) => 3 + i); // swap_0..n
+  const legalAfterDraw =
+    openingKind === 'draw-discard'
+      ? swapActions // drew from discard → MUST swap (can't discard back)
+      : [...swapActions, 7]; // drew from deck → can swap or discard
+
+  const mlAfter = await askMLBot(
+    buildMLState(room, botId, 1),
+    difficulty,
+    legalAfterDraw,
+  );
+
+  let afterKind: 'swap' | 'discard' = 'discard';
+  let swapIdx = 0;
+
+  if (mlAfter && mlAfter.startsWith('swap_')) {
+    afterKind = 'swap';
+    swapIdx = parseInt(mlAfter.split('_')[1], 10);
+  } else if (mlAfter === 'discard') {
+    afterKind = 'discard';
+  } else {
+    // Fallback to heuristics
+    const heuristic = decideAfterDraw(room, botId, drawn.card);
+    afterKind = heuristic.kind === 'swap' ? 'swap' : 'discard';
+    swapIdx = heuristic.idx ?? 0;
+  }
+
+  if (afterKind === 'swap') {
+    const r = room.swap(botId, swapIdx);
     io.to(roomChannel(room.code)).emit('game:event', {
       type: 'swap',
       actorId: botId,
-      idx: after.idx,
+      idx: swapIdx,
       card: r.replaced,
       powerType: r.powerType ?? null,
     });
-    // Bot just kicked a red head into the discard via the swap — auto-resolve
-    // the triggered power exactly like the direct-discard branch does.
     if (r.powerType) {
       autoResolveBotPower(io, room, botId, r.powerType);
       return;
@@ -553,12 +638,12 @@ function playBotTurn(io: Server, room: Room, botId: string): void {
       card: r.card,
       powerType: r.powerType ?? null,
     });
-    // Bots auto-resolve their power on a random target after a short delay.
     if (r.powerType) {
       autoResolveBotPower(io, room, botId, r.powerType);
       return;
     }
   }
+
   openSnapAndAdvance(io, room);
 }
 

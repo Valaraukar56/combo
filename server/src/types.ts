@@ -41,6 +41,7 @@ export interface RoomConfig {
   rounds: number;
   isPrivate: boolean;
   isSolo: boolean;
+  botDifficulty: 'easy' | 'medium' | 'hard';
 }
 
 export interface RoundResult {
