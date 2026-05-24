@@ -70,13 +70,23 @@ app.get('/download', async (_req, res) => {
 app.use('/api/auth', requireDesktopClient, authRouter);
 app.use('/api/stats', requireDesktopClient, statsRouter);
 
-// Serve the built frontend OR the download landing page depending on whether
+// Serve the built frontend OR the marketing landing page depending on whether
 // the desktop-client gate is on. With the gate enabled the SPA is shipped
-// inside the .exe — the web server only needs to advertise where to grab it.
+// inside the .exe — the web server only needs to serve the marketing site
+// (server/public/) which advertises the download and presents the game.
 if (config.isProd) {
   if (desktopClientGateEnabled) {
+    const publicDir = path.resolve(__dirname, '../public');
+    const publicIndex = path.join(publicDir, 'index.html');
+    app.use(express.static(publicDir));
     app.get('*', (_req, res) => {
-      res.set('Content-Type', 'text/html; charset=utf-8').send(landingPage());
+      // Prefer the static marketing site; fall back to the inline minimal page
+      // if public/index.html is missing (e.g. forgot to commit the file).
+      res.sendFile(publicIndex, (err) => {
+        if (err) {
+          res.set('Content-Type', 'text/html; charset=utf-8').send(landingPage());
+        }
+      });
     });
   } else {
     const distDir = path.resolve(__dirname, '../../app/dist');

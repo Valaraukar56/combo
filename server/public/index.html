@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COMBO — Le jeu de cartes de mémoire</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-body: 'DM Sans', -apple-system, system-ui, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-mono: 'DM Mono', 'Courier New', monospace;
+
+      /* Dark casino palette */
+      --bg-deep: #0a0d12;
+      --bg-surface: #14181f;
+      --bg-elevated: #1c2129;
+      --bg-felt: #1a1f28;
+
+      /* Paper / cream */
+      --ink: #ede4cf;
+      --ink-2: #a09a8a;
+      --ink-3: #66635a;
+
+      /* Gold accents */
+      --gold: #c8a96e;
+      --gold-bright: #e0c084;
+      --gold-deep: #8e7445;
+      --gold-glow: rgba(200, 169, 110, 0.35);
+
+      /* Suit colors */
+      --red: #b8453a;
+      --red-bright: #d35a4f;
+
+      /* Status */
+      --emerald: #6fa074;
+
+      /* Borders */
+      --border-subtle: rgba(237, 228, 207, 0.08);
+      --border: rgba(237, 228, 207, 0.16);
+      --card-bg: rgba(237, 228, 207, 0.025);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    ::selection { background-color: var(--gold); color: var(--bg-deep); }
+
+    html, body { background: var(--bg-deep); color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    html { scroll-behavior: auto; }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(200,169,110,0.25), rgba(200,169,110,0.55)); border-radius: 4px; transition: all 0.3s; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold); box-shadow: 0 0 12px var(--gold-glow); }
+
+    h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); letter-spacing: -0.01em; font-weight: 600; }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* === STARSCAPE === */
+    #starscape { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; animation: starscapeFadeIn 1.8s ease 1s forwards; }
+    @keyframes starscapeFadeIn { to { opacity: 0.42; } }
+
+    /* === AURORA / SPOTLIGHT REVEAL === */
+    #aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .aurora-spotlight {
+      position: absolute; left: 50%; top: 50%;
+      width: 140vmax; height: 140vmax;
+      background: radial-gradient(circle, rgba(200,169,110,0.10) 0%, rgba(200,169,110,0.04) 28%, transparent 55%);
+      transform: translate(-50%, -50%) scale(0);
+      transform-origin: center;
+      animation: spotlightReveal 1.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards, spotlightBreathe 12s ease-in-out 2s infinite;
+    }
+    @keyframes spotlightReveal {
+      0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      60%  { opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    @keyframes spotlightBreathe {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50%      { transform: translate(-50%, -50%) scale(1.08); }
+    }
+
+    .aurora-blob {
+      position: absolute; border-radius: 50%; filter: blur(140px);
+      mix-blend-mode: screen;
+      opacity: 0;
+      animation: blobAppear 1.6s ease 0.6s forwards;
+    }
+    .aurora-blob.gold {
+      width: 55vmax; height: 55vmax;
+      top: -18%; left: -12%;
+      background: var(--gold);
+      animation: blobAppear 1.6s ease 0.6s forwards, blobDriftA 28s ease-in-out 2.2s infinite;
+    }
+    .aurora-blob.red {
+      width: 42vmax; height: 42vmax;
+      bottom: -15%; right: -10%;
+      background: var(--red);
+      animation: blobAppear 1.6s ease 0.9s forwards, blobDriftB 36s ease-in-out 2.5s infinite;
+    }
+    .aurora-blob.deep {
+      width: 36vmax; height: 36vmax;
+      top: 45%; right: -8%;
+      background: var(--gold-deep);
+      animation: blobAppear 1.6s ease 1.2s forwards, blobDriftC 42s ease-in-out 2.8s infinite;
+    }
+    @keyframes blobAppear {
+      0%   { opacity: 0; }
+      100% { opacity: 0.14; }
+    }
+    @keyframes blobDriftA {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.14; }
+      33%      { transform: translate(8vw, 6vh) scale(1.1); opacity: 0.18; }
+      66%      { transform: translate(-4vw, 10vh) scale(0.95); opacity: 0.12; }
+    }
+    @keyframes blobDriftB {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.10; }
+      40%      { transform: translate(-9vw, -7vh) scale(1.12); opacity: 0.14; }
+      75%      { transform: translate(5vw, -12vh) scale(0.9); opacity: 0.08; }
+    }
+    @keyframes blobDriftC {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.10; }
+      50%      { transform: translate(-12vw, 8vh) scale(1.15); opacity: 0.13; }
+    }
+
+    /* === VELVET CURTAIN (parting reveal) === */
+    #velvetCurtain {
+      position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+      display: flex;
+    }
+    .curtain-half {
+      flex: 1; height: 100%; position: relative; overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 100% at 50% 50%, rgba(40,28,12,0.4), transparent 70%),
+        repeating-linear-gradient(95deg, #0a0608 0px, #150d08 8px, #0a0608 16px, #0d0807 22px),
+        #050304;
+      box-shadow: inset 0 0 80px rgba(200,169,110,0.06);
+      animation: curtainLeft 1.4s cubic-bezier(0.83, 0, 0.17, 1) 0.3s forwards;
+      will-change: transform;
+    }
+    .curtain-half::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(90deg, transparent 0px, rgba(255,255,255,0.012) 1px, transparent 3px),
+        linear-gradient(180deg, rgba(200,169,110,0.06) 0%, transparent 30%, transparent 70%, rgba(200,169,110,0.06) 100%);
+      pointer-events: none;
+    }
+    .curtain-half.right {
+      animation-name: curtainRight;
+      background:
+        radial-gradient(ellipse 80% 100% at 50% 50%, rgba(40,28,12,0.4), transparent 70%),
+        repeating-linear-gradient(85deg, #0a0608 0px, #150d08 8px, #0a0608 16px, #0d0807 22px),
+        #050304;
+    }
+    /* Gold edge that catches light at the parting line */
+    .curtain-half.left::after {
+      content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 2px;
+      background: linear-gradient(180deg, transparent 0%, var(--gold) 20%, var(--gold-bright) 50%, var(--gold) 80%, transparent 100%);
+      box-shadow: 0 0 20px var(--gold), 0 0 40px var(--gold-glow);
+      opacity: 0.9;
+    }
+    .curtain-half.right::after {
+      content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 2px;
+      background: linear-gradient(180deg, transparent 0%, var(--gold) 20%, var(--gold-bright) 50%, var(--gold) 80%, transparent 100%);
+      box-shadow: 0 0 20px var(--gold), 0 0 40px var(--gold-glow);
+      opacity: 0.9;
+    }
+    @keyframes curtainLeft  { to { transform: translateX(-101%); } }
+    @keyframes curtainRight { to { transform: translateX( 101%); } }
+    #velvetCurtain.done { display: none; }
+
+    /* === CURSOR SPOTLIGHT === */
+    #cursorSpotlight {
+      position: fixed; inset: 0; z-index: 999; pointer-events: none;
+      background: radial-gradient(circle 420px at var(--cx, 50%) var(--cy, 50%),
+        rgba(200,169,110,0.13) 0%, rgba(200,169,110,0.05) 38%, transparent 75%);
+      opacity: 0;
+      transition: opacity 1.2s ease 2s;
+      mix-blend-mode: screen;
+    }
+    #cursorSpotlight.ready { opacity: 1; }
+
+    /* === CARD FAN (dealing hand) === */
+    .card-fan {
+      position: absolute; left: 50%; top: 50%;
+      width: 0; height: 0;
+      perspective: 1400px;
+      z-index: 1;
+      pointer-events: none;
+      transform: translate(-50%, -50%) rotateX(var(--fan-rx, 0deg)) rotateY(var(--fan-ry, 0deg));
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      transform-style: preserve-3d;
+    }
+    .play-card {
+      position: absolute;
+      width: 200px; height: 280px;
+      left: -100px; top: -140px;
+      border-radius: 14px;
+      box-shadow: 0 22px 60px rgba(0,0,0,0.75), 0 1px 0 rgba(255,255,255,0.08) inset, 0 0 0 1px rgba(200,169,110,0.18);
+      transform-style: preserve-3d;
+      transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease;
+      opacity: 0;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      overflow: hidden;
+    }
+
+    /* Initial state: above viewport, rotated chaotically */
+    .play-card.c1 { transform: translate3d(-40px, -700px, 0) rotate(-200deg); }
+    .play-card.c2 { transform: translate3d(20px, -700px, 0) rotate(170deg); }
+    .play-card.c3 { transform: translate3d(-10px, -700px, 0) rotate(-160deg); }
+    .play-card.c4 { transform: translate3d(30px, -700px, 0) rotate(210deg); }
+
+    /* Final positions: split fan — 2 cards on each side, center clear for text */
+    .play-card.dealt.c1 { opacity: 1; transform: translate3d(-560px, 10px, -110px) rotate(-24deg); }
+    .play-card.dealt.c2 { opacity: 1; transform: translate3d(-410px, -12px, -50px) rotate(-12deg); }
+    .play-card.dealt.c3 { opacity: 1; transform: translate3d(410px, -12px, -50px) rotate(12deg); }
+    .play-card.dealt.c4 { opacity: 1; transform: translate3d(560px, 10px, -110px) rotate(24deg); }
+
+    /* Card back design (COMBO branded) */
+    .card-back {
+      background: linear-gradient(135deg, #0d0d12 0%, #16161e 100%);
+      border: 1px solid rgba(200,169,110,0.22);
+    }
+    .card-back::before {
+      content: ''; position: absolute; inset: 7px;
+      border: 1px solid rgba(200,169,110,0.18);
+      border-radius: 9px;
+    }
+    .card-back::after {
+      content: 'COMBO';
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 700;
+      font-size: 1.55rem;
+      letter-spacing: 0.18em;
+      color: rgba(232,228,207,0.88);
+      text-shadow: 0 0 18px rgba(200,169,110,0.4);
+    }
+
+    /* Card face design */
+    .card-face {
+      background: linear-gradient(135deg, #ede4cf 0%, #d8cdb4 100%);
+      color: var(--bg-deep);
+      position: relative;
+    }
+    .card-face .rank-corner {
+      position: absolute;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.4rem;
+      line-height: 1;
+      text-align: center;
+    }
+    .card-face .rank-corner.tl { top: 10px; left: 12px; }
+    .card-face .rank-corner.br { bottom: 10px; right: 12px; transform: rotate(180deg); }
+    .card-face .rank-corner small { font-size: 1rem; display: block; margin-top: 1px; }
+    .card-face .center-suit { font-size: 5rem; line-height: 1; }
+    .card-face.red, .card-face.red .rank-corner { color: var(--red); }
+
+    /* Tablet sizing — slightly smaller cards, tighter side spacing */
+    @media (max-width: 1280px) {
+      .play-card.dealt.c1 { transform: translate3d(-440px, 8px, -100px) rotate(-22deg); }
+      .play-card.dealt.c2 { transform: translate3d(-310px, -10px, -40px) rotate(-11deg); }
+      .play-card.dealt.c3 { transform: translate3d(310px, -10px, -40px) rotate(11deg); }
+      .play-card.dealt.c4 { transform: translate3d(440px, 8px, -100px) rotate(22deg); }
+    }
+    @media (max-width: 1024px) {
+      .play-card { width: 150px; height: 210px; left: -75px; top: -105px; border-radius: 11px; }
+      .play-card.dealt.c1 { transform: translate3d(-330px, 6px, -90px) rotate(-22deg); }
+      .play-card.dealt.c2 { transform: translate3d(-220px, -8px, -30px) rotate(-10deg); }
+      .play-card.dealt.c3 { transform: translate3d(220px, -8px, -30px) rotate(10deg); }
+      .play-card.dealt.c4 { transform: translate3d(330px, 6px, -90px) rotate(22deg); }
+      .card-back::after { font-size: 1.15rem; }
+      .card-face .rank-corner { font-size: 1.05rem; }
+      .card-face .center-suit { font-size: 3.5rem; }
+    }
+    @media (max-width: 768px) {
+      .play-card { width: 90px; height: 126px; left: -45px; top: -63px; border-radius: 9px; }
+      /* On mobile: hide inner cards, keep only outer 2 framing the text */
+      .play-card.c2, .play-card.c3 { display: none; }
+      .play-card.dealt.c1 { transform: translate3d(-135px, 8px, -60px) rotate(-22deg); }
+      .play-card.dealt.c4 { transform: translate3d(135px, 8px, -60px) rotate(22deg); }
+      .card-back::after { font-size: 0.7rem; letter-spacing: 0.12em; }
+      .card-face .rank-corner { font-size: 0.65rem; }
+      .card-face .center-suit { font-size: 2rem; }
+    }
+
+    /* === HERO REVEAL STAGGER === */
+    .reveal { opacity: 0; transform: translateY(20px); animation: revealUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .reveal-delay-1 { animation-delay: 1.3s; }
+    .reveal-delay-2 { animation-delay: 1.5s; }
+    .reveal-delay-3 { animation-delay: 1.75s; }
+    .reveal-delay-4 { animation-delay: 2.0s; }
+    .reveal-delay-5 { animation-delay: 2.3s; }
+    @keyframes revealUp {
+      0%   { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Respect motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .aurora-spotlight, .aurora-blob, #velvetCurtain, .curtain-half, .play-card { animation: none !important; transition: none !important; }
+      .aurora-spotlight { transform: translate(-50%, -50%) scale(1); }
+      .aurora-blob.gold, .aurora-blob.red, .aurora-blob.deep { opacity: 0.12; }
+      #velvetCurtain { display: none; }
+      .reveal { opacity: 1; transform: none; animation: none; }
+      #starscape { opacity: 0.42; transition: none; }
+      .play-card { opacity: 1; }
+      .play-card.c1 { transform: translate3d(-560px, 10px, 0) rotate(-24deg); }
+      .play-card.c2 { transform: translate3d(-410px, -12px, 0) rotate(-12deg); }
+      .play-card.c3 { transform: translate3d(410px, -12px, 0) rotate(12deg); }
+      .play-card.c4 { transform: translate3d(560px, 10px, 0) rotate(24deg); }
+      #cursorSpotlight { display: none; }
+    }
+
+    /* === SCROLL PROGRESS === */
+    #scrollProgress { position: fixed; top: 0; left: 0; height: 2px; width: 0%; background: linear-gradient(90deg, rgba(200,169,110,0.4), var(--gold-bright)); box-shadow: 0 0 8px var(--gold-glow); z-index: 10000; transition: width 0.1s linear; }
+
+    /* === NAVBAR === */
+    #navbar { position: fixed; top: 14px; left: 0; right: 0; z-index: 1000; transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+    .nav-inner { max-width: 100%; margin: 0 auto; padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid transparent; }
+    .nav-logo { display: flex; align-items: center; gap: 12px; }
+    .nav-logo-mark { width: 34px; height: 34px; border-radius: 9px; overflow: hidden; box-shadow: 0 0 14px var(--gold-glow); flex-shrink: 0; border: 1px solid rgba(200,169,110,0.3); }
+    .nav-logo-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .nav-logo-name { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; letter-spacing: 0.2em; font-style: italic; }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a { font-size: 0.85rem; color: var(--ink-2); transition: color 0.25s ease; font-weight: 500; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta { background: var(--gold); color: var(--bg-deep) !important; padding: 9px 18px; border-radius: 99px; font-weight: 600 !important; box-shadow: 0 0 16px var(--gold-glow); transition: all 0.3s ease !important; }
+    .nav-cta:hover { background: var(--gold-bright); box-shadow: 0 0 26px rgba(224,192,132,0.55); transform: translateY(-1px); }
+
+    #navbar.nav-scrolled .nav-inner { max-width: 880px; background: rgba(20,24,31,0.7); border: 1px solid var(--border-subtle); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border-radius: 100px; padding: 9px 12px 9px 18px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+
+    /* === HERO === */
+    #hero { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8rem 1.5rem 4rem; z-index: 1; }
+    .hero-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(140px); }
+    .orb-1 { width: 600px; height: 600px; background: var(--gold); top: -220px; right: -180px; opacity: 0.08; }
+    .orb-2 { width: 500px; height: 500px; background: var(--red); bottom: -200px; left: -160px; opacity: 0.06; }
+    .grid-overlay { position: absolute; inset: 0; background-image: linear-gradient(rgba(237,228,207,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(237,228,207,0.02) 1px, transparent 1px); background-size: 64px 64px; mask-image: radial-gradient(ellipse at center, black 35%, transparent 85%); -webkit-mask-image: radial-gradient(ellipse at center, black 35%, transparent 85%); }
+
+    .hero-content { position: relative; z-index: 2; text-align: center; max-width: 920px; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.4rem 1rem; margin-bottom: 1.75rem; border-radius: 99px; border: 1px solid rgba(200,169,110,0.25); background: rgba(200,169,110,0.06); color: var(--gold-bright); font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.22em; backdrop-filter: blur(10px); }
+    .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--emerald); border-radius: 50%; box-shadow: 0 0 10px var(--emerald); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+    .hero-title { font-size: clamp(3rem, 9vw, 7.5rem); font-weight: 700; line-height: 1.0; letter-spacing: -0.02em; margin-bottom: 1.75rem; font-family: var(--font-display); }
+    .hero-title .gold-italic { font-style: italic; background: linear-gradient(180deg, var(--gold-bright), var(--gold-deep)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600; }
+    .hero-title .faded { color: var(--ink); }
+    .hero-title .period { color: var(--gold); }
+
+    .hero-subtitle { font-size: clamp(1rem, 1.55vw, 1.2rem); color: var(--ink-2); line-height: 1.65; max-width: 620px; margin: 0 auto 2.5rem; font-weight: 400; }
+    .hero-subtitle strong { color: var(--ink); font-weight: 500; }
+
+    .hero-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary { background: var(--gold); color: var(--bg-deep); padding: 15px 34px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; box-shadow: 0 0 22px var(--gold-glow); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-body); }
+    .btn-primary:hover { background: var(--gold-bright); box-shadow: 0 0 34px rgba(224,192,132,0.55); transform: translateY(-2px); }
+    .btn-secondary { background: transparent; color: var(--ink); padding: 15px 34px; border: 1px solid var(--border); border-radius: 10px; font-weight: 500; font-size: 0.95rem; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-body); }
+    .btn-secondary:hover { border-color: var(--gold); color: var(--gold-bright); background: rgba(200,169,110,0.05); }
+    .btn-large { font-size: 1.05rem; padding: 18px 44px; }
+
+    .scroll-hint { display: inline-flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 3.5rem; color: var(--ink-3); font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.8; animation: floatY 2.5s ease-in-out infinite; }
+    .scroll-arrow { width: 1px; height: 38px; background: linear-gradient(180deg, var(--ink-3), transparent); }
+    @keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+
+    /* === SECTION COMMON === */
+    .section-title { font-size: clamp(2.2rem, 5.5vw, 4rem); font-weight: 600; text-align: center; margin-bottom: 0.75rem; letter-spacing: -0.015em; font-family: var(--font-display); }
+    .section-title em { font-style: italic; color: var(--gold-bright); }
+    .section-eyebrow { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold); text-align: center; margin-bottom: 1rem; font-weight: 500; }
+    .section-subtitle { color: var(--ink-2); text-align: center; max-width: 640px; margin: 0 auto 4rem; font-size: 1.05rem; line-height: 1.7; font-weight: 400; }
+
+    /* === SPECS === */
+    #specs { padding: 140px 32px 100px; position: relative; z-index: 1; }
+    .specs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; max-width: 1100px; margin: 0 auto; text-align: center; }
+    .spec-item { padding: 30px 12px; border-left: 1px solid var(--border-subtle); }
+    .spec-item:first-child { border-left: none; }
+    .spec-number-wrap { display: inline-flex; align-items: baseline; gap: 4px; }
+    .spec-number { font-family: var(--font-display); font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 600; display: inline-block; transition: text-shadow 0.3s ease; letter-spacing: -0.02em; font-style: italic; }
+    .spec-suffix { font-family: var(--font-display); font-size: clamp(1.2rem, 2.4vw, 1.7rem); font-weight: 400; color: var(--ink-2); font-style: italic; }
+    .spec-number.counting { text-shadow: 0 0 24px var(--gold-glow); color: var(--gold-bright); }
+    .spec-label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-2); margin-top: 14px; display: block; letter-spacing: 0.2em; text-transform: uppercase; }
+
+    /* === COMMENT JOUER (RULES) === */
+    #rules { padding: 120px 32px; position: relative; z-index: 1; background: linear-gradient(180deg, transparent 0%, rgba(20,24,31,0.4) 50%, transparent 100%); }
+    .rules-wrap { max-width: 1200px; margin: 0 auto; }
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; margin-top: 3rem; }
+    .rules-steps { display: flex; flex-direction: column; gap: 1.5rem; }
+    .rule-step { display: flex; gap: 1.25rem; padding: 1.5rem; border-radius: 14px; border: 1px solid var(--border-subtle); background: rgba(237,228,207,0.015); transition: all 0.3s ease; }
+    .rule-step:hover { border-color: rgba(200,169,110,0.2); background: rgba(200,169,110,0.025); }
+    .rule-step-num { flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; background: rgba(200,169,110,0.1); border: 1px solid rgba(200,169,110,0.3); display: flex; align-items: center; justify-content: center; color: var(--gold-bright); font-family: var(--font-display); font-weight: 600; font-style: italic; font-size: 1.1rem; }
+    .rule-step-title { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; margin-bottom: 0.4rem; color: var(--ink); }
+    .rule-step-desc { font-size: 0.92rem; color: var(--ink-2); line-height: 1.6; }
+    .rule-step-desc kbd { font-family: var(--font-mono); font-size: 0.85em; background: rgba(200,169,110,0.1); color: var(--gold-bright); padding: 1px 7px; border-radius: 4px; border: 1px solid rgba(200,169,110,0.2); }
+
+    /* Visual 2x2 grid demo */
+    .card-table { position: relative; padding: 3rem 2rem; border-radius: 22px; border: 1px solid var(--border-subtle); background: radial-gradient(ellipse 75% 80% at 50% 50%, rgba(26,31,40,0.95) 0%, rgba(12,15,21,1) 100%); box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset; aspect-ratio: 1 / 1; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 1.5rem; }
+    .card-table::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(45deg, transparent 0 2px, rgba(0,0,0,0.04) 2px 3px), repeating-linear-gradient(-45deg, transparent 0 2px, rgba(255,255,255,0.012) 2px 3px); border-radius: 22px; pointer-events: none; }
+    .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; position: relative; z-index: 1; }
+    .card-slot { aspect-ratio: 5 / 7; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); position: relative; box-shadow: 0 6px 18px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05) inset; transition: transform 0.3s ease; }
+    .card-slot:hover { transform: translateY(-4px); }
+    .card-back { background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-surface) 100%); border: 1px solid rgba(200,169,110,0.18); color: var(--gold-deep); font-size: 1.5rem; font-weight: 700; }
+    .card-back::before { content: ''; position: absolute; inset: 6px; border: 1px dashed rgba(200,169,110,0.15); border-radius: 6px; }
+    .card-face { background: linear-gradient(135deg, var(--ink) 0%, #d8cdb4 100%); color: var(--bg-deep); flex-direction: column; padding: 0.5rem; font-weight: 700; }
+    .card-face .rank-tl, .card-face .rank-br { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; position: absolute; line-height: 1; }
+    .card-face .rank-tl { top: 8px; left: 10px; }
+    .card-face .rank-br { bottom: 8px; right: 10px; transform: rotate(180deg); }
+    .card-face .suit { font-size: 2.5rem; }
+    .card-face.red, .card-face.red .rank-tl, .card-face.red .rank-br { color: var(--red); }
+    .card-pos-label { position: absolute; top: -10px; left: 10px; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.2em; color: var(--gold); background: var(--bg-deep); padding: 2px 7px; border-radius: 99px; border: 1px solid rgba(200,169,110,0.3); text-transform: uppercase; }
+    .table-caption { text-align: center; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3); margin-top: 1rem; }
+
+    /* === POWERS === */
+    .powers-section { margin-top: 5rem; }
+    .powers-title { text-align: center; font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; margin-bottom: 0.5rem; font-style: italic; color: var(--gold-bright); }
+    .powers-subtitle { text-align: center; color: var(--ink-2); margin-bottom: 2.5rem; font-size: 0.95rem; }
+    .powers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; max-width: 1000px; margin: 0 auto; }
+    .power-card { background: rgba(237,228,207,0.025); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 28px 24px; text-align: center; transition: all 0.35s ease; position: relative; overflow: hidden; }
+    .power-card:hover { transform: translateY(-3px); border-color: rgba(184,69,58,0.3); }
+    .power-card::after { content: attr(data-suit); position: absolute; top: -25px; right: -15px; font-family: var(--font-display); font-size: 7rem; color: var(--red); opacity: 0.06; line-height: 1; }
+    .power-rank { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; color: var(--red-bright); margin-bottom: 0.25rem; font-style: italic; }
+    .power-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--ink); }
+    .power-desc { font-size: 0.88rem; color: var(--ink-2); line-height: 1.55; position: relative; z-index: 1; }
+
+    /* === FEATURES === */
+    #features { padding: 120px 32px; position: relative; z-index: 1; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; max-width: 1200px; margin: 0 auto; }
+    .feature-card { background: var(--card-bg); border: 1px solid var(--border-subtle); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 18px; padding: 36px 30px; transition: all 0.35s ease; position: relative; overflow: hidden; }
+    .feature-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(200,169,110,0.06), transparent 60%); opacity: 0; transition: opacity 0.35s ease; }
+    .feature-card:hover { transform: translateY(-4px); border-color: rgba(200,169,110,0.22); box-shadow: 0 12px 40px rgba(200,169,110,0.06); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(200,169,110,0.08); border: 1px solid rgba(200,169,110,0.18); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 22px; color: var(--gold-bright); position: relative; z-index: 1; }
+    .feature-icon svg { width: 22px; height: 22px; }
+    .feature-card h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 10px; position: relative; z-index: 1; font-family: var(--font-display); }
+    .feature-card p { color: var(--ink-2); line-height: 1.65; font-size: 0.92rem; font-weight: 400; position: relative; z-index: 1; }
+
+    /* === CARD SCANNER (Three.js) === */
+    #scanner { padding: 140px 32px 120px; position: relative; z-index: 1; overflow: hidden; }
+    .scanner-wrap { max-width: 1200px; margin: 0 auto; }
+    .scanner-canvas-wrap { position: relative; height: 560px; border-radius: 24px; overflow: hidden; background: radial-gradient(ellipse at center, rgba(200,169,110,0.05) 0%, transparent 70%); border: 1px solid var(--border-subtle); margin-top: 2rem; }
+    #scannerCanvas { width: 100%; height: 100%; display: block; cursor: grab; }
+    #scannerCanvas:active { cursor: grabbing; }
+    .scanner-hint { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--ink-3); opacity: 0.8; padding: 6px 14px; border: 1px solid var(--border-subtle); border-radius: 99px; background: rgba(10,13,18,0.5); backdrop-filter: blur(10px); pointer-events: none; }
+
+    /* === CTA === */
+    #cta { padding: 140px 32px; text-align: center; position: relative; overflow: hidden; z-index: 1; }
+    .cta-bg-orb { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 720px; height: 720px; background: var(--gold); border-radius: 50%; filter: blur(200px); opacity: 0.06; pointer-events: none; }
+    .cta-content { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; }
+    #cta h2 { font-size: clamp(2.4rem, 5.5vw, 4.4rem); font-weight: 600; margin-bottom: 1.25rem; letter-spacing: -0.015em; font-family: var(--font-display); }
+    #cta h2 em { font-style: italic; color: var(--gold-bright); }
+    #cta p { color: var(--ink-2); font-size: 1.1rem; line-height: 1.65; margin-bottom: 2.5rem; max-width: 580px; margin-left: auto; margin-right: auto; font-weight: 400; }
+    .cta-meta { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; color: var(--ink-3); font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; }
+    .cta-meta::before { content: ''; width: 6px; height: 6px; background: var(--emerald); border-radius: 50%; box-shadow: 0 0 8px var(--emerald); }
+
+    /* === FOOTER === */
+    footer { border-top: 1px solid var(--border-subtle); padding: 60px 32px 40px; text-align: center; position: relative; z-index: 1; }
+    .footer-brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 22px; }
+    .footer-brand .nav-logo-mark { width: 34px; height: 34px; }
+    .footer-brand-name { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.2em; font-size: 1.15rem; font-style: italic; }
+    .footer-links { display: flex; justify-content: center; gap: 28px; margin-bottom: 22px; flex-wrap: wrap; }
+    .footer-links a { color: var(--ink-2); font-size: 0.85rem; transition: color 0.25s ease; }
+    .footer-links a:hover { color: var(--gold-bright); }
+    .footer-copy { color: var(--ink-3); font-size: 0.78rem; font-family: var(--font-mono); letter-spacing: 0.08em; }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 1024px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .scanner-canvas-wrap { height: 460px; }
+      .rules-grid { grid-template-columns: 1fr; gap: 40px; }
+      .powers-grid { grid-template-columns: 1fr; max-width: 480px; }
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      #navbar.nav-scrolled .nav-inner { max-width: calc(100% - 24px); }
+      .specs-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+      .spec-item { border-left: none; padding: 22px 8px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .scanner-canvas-wrap { height: 400px; }
+      .card-table { padding: 2rem 1.25rem; }
+      #specs, #features, #scanner, #cta, #rules { padding-left: 18px; padding-right: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="velvetCurtain">
+    <div class="curtain-half left"></div>
+    <div class="curtain-half right"></div>
+  </div>
+  <canvas id="starscape"></canvas>
+  <div id="aurora">
+    <div class="aurora-spotlight"></div>
+    <div class="aurora-blob gold"></div>
+    <div class="aurora-blob red"></div>
+    <div class="aurora-blob deep"></div>
+  </div>
+  <div id="cursorSpotlight"></div>
+  <div id="scrollProgress"></div>
+
+  <!-- NAVBAR -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <div class="nav-logo-mark"><img src="assets/images/LOGO%20twitch.jpg" alt="Combo"></div>
+        <span class="nav-logo-name">COMBO</span>
+      </div>
+      <div class="nav-links">
+        <a href="#rules">Comment jouer</a>
+        <a href="#features">Fonctionnalités</a>
+        <a href="#scanner">La carte</a>
+        <a href="#cta" class="nav-cta">Télécharger</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-bg">
+      <div class="grid-overlay"></div>
+    </div>
+    <div class="card-fan" id="cardFan">
+      <div class="play-card card-back c1"></div>
+      <div class="play-card card-face c2">
+        <div class="rank-corner tl">K<small>♠</small></div>
+        <div class="center-suit">♠</div>
+        <div class="rank-corner br">K<small>♠</small></div>
+      </div>
+      <div class="play-card card-face red c3">
+        <div class="rank-corner tl">A<small>♥</small></div>
+        <div class="center-suit">♥</div>
+        <div class="rank-corner br">A<small>♥</small></div>
+      </div>
+      <div class="play-card card-back c4"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge reveal reveal-delay-1">Jeu de cartes · 2-4 joueurs · Solo ou en ligne</div>
+      <h1 class="hero-title reveal reveal-delay-2"><span class="faded">Mémorisez.</span> <span class="gold-italic">Échangez.</span><br><span class="faded">COMBO<span class="period">.</span></span></h1>
+      <p class="hero-subtitle reveal reveal-delay-3">Quatre cartes face cachée, deux secrets, une seule règle : <strong>finir avec le moins de points</strong>. Bluffez, snappez, appelez COMBO au bon moment — sinon vous y restez.</p>
+      <div class="hero-buttons reveal reveal-delay-4">
+        <a href="#cta" class="btn-primary">Télécharger pour Windows <span>↓</span></a>
+        <a href="#rules" class="btn-secondary">Voir les règles</a>
+      </div>
+      <div class="scroll-hint reveal reveal-delay-5">
+        <span>Faites défiler pour découvrir</span>
+        <div class="scroll-arrow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPECS -->
+  <section id="specs">
+    <div class="section-eyebrow">En chiffres</div>
+    <h2 class="section-title">Quatre cartes, <em>infinies décisions</em>.</h2>
+    <p class="section-subtitle">Une partie tient en quelques minutes. La maîtrise prend des heures.</p>
+    <div class="specs-grid">
+      <div class="spec-item" data-target="4" data-suffix=" joueurs">
+        <span class="spec-number-wrap"><span class="spec-number">0</span></span>
+        <span class="spec-label">2 à 4 par partie</span>
+      </div>
+      <div class="spec-item" data-target="6" data-suffix="s">
+        <span class="spec-number-wrap"><span class="spec-number">0</span></span>
+        <span class="spec-label">Phase mémorisation</span>
+      </div>
+      <div class="spec-item" data-target="3" data-suffix="s">
+        <span class="spec-number-wrap"><span class="spec-number">0</span></span>
+        <span class="spec-label">Fenêtre de snap</span>
+      </div>
+      <div class="spec-item" data-target="100" data-suffix="%">
+        <span class="spec-number-wrap"><span class="spec-number">0</span></span>
+        <span class="spec-label">Gratuit, sans pub</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMENT JOUER -->
+  <section id="rules">
+    <div class="rules-wrap">
+      <div class="section-eyebrow">Comment jouer</div>
+      <h2 class="section-title">Les règles, <em>en cinq mouvements</em>.</h2>
+      <p class="section-subtitle">Pas besoin d'un manuel. Le jeu se comprend en deux minutes, mais se maîtrise sur la durée.</p>
+
+      <div class="rules-grid">
+        <div class="rules-steps">
+          <div class="rule-step">
+            <div class="rule-step-num">1</div>
+            <div>
+              <div class="rule-step-title">Quatre cartes, deux secrets</div>
+              <div class="rule-step-desc">Chaque joueur reçoit 4 cartes en grille 2×2. <kbd>6s</kbd> pour mémoriser les deux du bas. Les deux du haut restent cachées — même pour vous.</div>
+            </div>
+          </div>
+          <div class="rule-step">
+            <div class="rule-step-num">2</div>
+            <div>
+              <div class="rule-step-title">Le but : moins de points</div>
+              <div class="rule-step-desc">As = <kbd>0</kbd>, 2 = <kbd>2</kbd>, … Roi = <kbd>13</kbd>. À la fin, on additionne. Le plus bas score gagne la manche. Vos cartes les plus fortes sont vos pires ennemies.</div>
+            </div>
+          </div>
+          <div class="rule-step">
+            <div class="rule-step-num">3</div>
+            <div>
+              <div class="rule-step-title">Échangez, observez, bluffez</div>
+              <div class="rule-step-desc">À votre tour : piochez la carte du dessus ou prenez la défausse. Échangez-la avec une de vos 4 cartes ou défaussez. Chaque échange est une info pour les autres.</div>
+            </div>
+          </div>
+          <div class="rule-step">
+            <div class="rule-step-num">4</div>
+            <div>
+              <div class="rule-step-title">Snap (3 secondes)</div>
+              <div class="rule-step-desc">Après chaque défausse, <kbd>3s</kbd> pour snapper. Si l'une de vos cartes vaut le même rang que la défausse, vous la dégagez — un trou de moins. Mais ratez votre snap et vous récupérez une carte penalty.</div>
+            </div>
+          </div>
+          <div class="rule-step">
+            <div class="rule-step-num">5</div>
+            <div>
+              <div class="rule-step-title">L'appel COMBO</div>
+              <div class="rule-step-desc">Quand vous pensez avoir le score le plus bas, criez <kbd>COMBO</kbd> au lieu de jouer. Tout le monde joue un dernier tour, puis on révèle. Si vous gagnez : zéro point. Sinon : la pénalité fait mal.</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-table">
+            <span class="card-pos-label">Votre main</span>
+            <div class="card-row">
+              <div class="card-slot card-back">3</div>
+              <div class="card-slot card-back">4</div>
+            </div>
+            <div class="card-row">
+              <div class="card-slot card-face">
+                <span class="rank-tl">7<br>♣</span>
+                <span class="suit">♣</span>
+                <span class="rank-br">7<br>♣</span>
+              </div>
+              <div class="card-slot card-face red">
+                <span class="rank-tl">A<br>♥</span>
+                <span class="suit">♥</span>
+                <span class="rank-br">A<br>♥</span>
+              </div>
+            </div>
+          </div>
+          <p class="table-caption">Cartes 3 & 4 cachées · Cartes 1 & 2 mémorisées</p>
+        </div>
+      </div>
+
+      <!-- POUVOIRS -->
+      <div class="powers-section">
+        <h3 class="powers-title">Les pouvoirs rouges</h3>
+        <p class="powers-subtitle">Trois cartes spéciales. Trois façons de retourner une manche.</p>
+        <div class="powers-grid">
+          <div class="power-card" data-suit="♥♦">
+            <div class="power-rank">J</div>
+            <div class="power-name">Valet rouge</div>
+            <div class="power-desc">Regardez l'une de vos cartes en secret. Idéal pour vérifier ce qu'il y a sous vos pioches passées.</div>
+          </div>
+          <div class="power-card" data-suit="♥♦">
+            <div class="power-rank">Q</div>
+            <div class="power-name">Dame rouge</div>
+            <div class="power-desc">Espionnez une carte d'un adversaire. Vous saurez exactement quoi viser pour le coup d'après.</div>
+          </div>
+          <div class="power-card" data-suit="♥♦">
+            <div class="power-rank">K</div>
+            <div class="power-name">Roi rouge</div>
+            <div class="power-desc">Échange aveugle. Vous swappez une de vos cartes avec celle d'un adversaire — sans qu'aucun de vous deux ne la voie.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-eyebrow">Ce qui est dedans</div>
+    <h2 class="section-title">Conçu <em>pour rejouer</em>.</h2>
+    <p class="section-subtitle">Solo, multi, stats, classement. Tout ce qu'il faut pour des soirées sans fin.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="3"/><circle cx="15" cy="12" r="3"/><path d="M9 19c-3 0-5-2-5-5V8c0-3 2-5 5-5h6c3 0 5 2 5 5v6c0 3-2 5-5 5"/></svg></div>
+        <h3>Solo contre l'IA</h3>
+        <p>Trois bots, trois personnalités. Du chill au sweat — l'entraînement parfait pour préparer vos parties multi.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Multi en ligne</h3>
+        <p>Créez une salle, partagez le code, jouez avec vos potes. Reconnexion auto si vous perdez le réseau (30s de grâce).</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <h3>Snap temps réel</h3>
+        <p>3 secondes après chaque défausse pour réagir. Server-authoritative, donc pas de lag bullshit — le premier qui clique gagne.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
+        <h3>Stats &amp; classement</h3>
+        <p>Vos parties multi sont enregistrées : winrate, manches gagnées, meilleurs scores. Un leaderboard global pour rappeler à vos potes qui est patron.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
+        <h3>Auto-update intégré</h3>
+        <p>Chaque nouvelle version se télécharge en arrière-plan et s'installe en un clic au prochain lancement. Pas de réinstall, pas de prise de tête.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+        <h3>100% gratuit</h3>
+        <p>Pas de DLC, pas de loot box, pas d'achats in-game. Un .exe Windows, un compte, et c'est parti. Fait par un dev solo, pour les potes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARD SCANNER (Three.js) -->
+  <section id="scanner">
+    <div class="scanner-wrap">
+      <div class="section-eyebrow">Une carte. Un secret.</div>
+      <h2 class="section-title">Vos cartes, <em>vivantes</em>.</h2>
+      <p class="section-subtitle">Rendu en direct dans votre navigateur. Cliquez-glissez pour faire tourner, cliquez pour disperser.</p>
+      <div class="scanner-canvas-wrap">
+        <canvas id="scannerCanvas"></canvas>
+        <div class="scanner-hint">Glissez pour tourner · Cliquez pour disperser</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta">
+    <div class="cta-bg-orb"></div>
+    <div class="cta-content">
+      <h2>Prêt à appeler<br><em>COMBO</em> ?</h2>
+      <p>Téléchargez COMBO pour Windows. Créez un compte, invitez vos potes, lancez une partie en moins d'une minute. Le premier qui dit "encore une" a perdu.</p>
+      <a href="https://51.68.129.168.sslip.io/download" class="btn-primary btn-large">Télécharger pour Windows <span>↓</span></a>
+      <div class="cta-meta">Windows · Auto-update · Gratuit pour toujours</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">
+      <div class="nav-logo-mark"><img src="assets/images/LOGO%20twitch.jpg" alt="Combo"></div>
+      <span class="footer-brand-name">COMBO</span>
+    </div>
+    <div class="footer-links">
+      <a href="#rules">Règles</a>
+      <a href="#features">Fonctionnalités</a>
+      <a href="https://github.com/Valaraukar56/combo" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/Valaraukar56/combo/releases" target="_blank" rel="noopener">Releases</a>
+    </div>
+    <p class="footer-copy">© 2026 COMBO · Fait par Vala · Un projet solo, à la caféine</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    /* ===== STARSCAPE ===== */
+    (function() {
+      const canvas = document.getElementById('starscape');
+      const ctx = canvas.getContext('2d');
+      let stars = [];
+      function init() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        stars = [];
+        for (let i = 0; i < 180; i++) {
+          stars.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            radius: Math.random() * 1.1 + 0.3,
+            baseOpacity: Math.random() * 0.5 + 0.15,
+            driftX: (Math.random() - 0.5) * 0.04,
+            driftY: (Math.random() - 0.5) * 0.02,
+            twinkleSpeed: 0.001 + Math.random() * 0.002,
+            twinklePhase: Math.random() * Math.PI * 2,
+            warm: Math.random() < 0.3
+          });
+        }
+      }
+      function animate() {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        const now = Date.now();
+        for (const s of stars) {
+          s.x += s.driftX; s.y += s.driftY;
+          if (s.x < 0) s.x = window.innerWidth;
+          if (s.x > window.innerWidth) s.x = 0;
+          if (s.y < 0) s.y = window.innerHeight;
+          if (s.y > window.innerHeight) s.y = 0;
+          const tw = Math.sin(now * s.twinkleSpeed + s.twinklePhase);
+          const op = Math.max(0, s.baseOpacity + tw * 0.3);
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctx.fillStyle = s.warm
+            ? `rgba(224, 192, 132, ${op})`
+            : `rgba(237, 228, 207, ${op})`;
+          ctx.fill();
+        }
+        requestAnimationFrame(animate);
+      }
+      init();
+      animate();
+      window.addEventListener('resize', init);
+    })();
+
+    /* ===== SCROLL PROGRESS ===== */
+    const scrollProgressBar = document.getElementById('scrollProgress');
+    window.addEventListener('scroll', () => {
+      const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+      scrollProgressBar.style.width = pct + '%';
+    }, { passive: true });
+
+    /* ===== NAVBAR PILL ===== */
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('nav-scrolled', window.scrollY > 80);
+    }, { passive: true });
+
+    /* ===== COUNT-UP ===== */
+    function easeOutExpo(t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
+    function countUp(el, target, duration = 2200) {
+      const start = performance.now();
+      el.classList.add('counting');
+      const isInt = target % 1 === 0;
+      function update(now) {
+        const elapsed = now - start;
+        const p = Math.min(elapsed / duration, 1);
+        const eased = easeOutExpo(p);
+        const cur = eased * target;
+        el.textContent = (isInt ? Math.floor(cur) : cur.toFixed(1));
+        if (p < 1) { requestAnimationFrame(update); }
+        else { el.textContent = isInt ? target : target.toFixed(1); el.classList.remove('counting'); }
+      }
+      requestAnimationFrame(update);
+    }
+    const specObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const items = entry.target.querySelectorAll('.spec-item');
+          items.forEach((item, i) => {
+            setTimeout(() => {
+              const numEl = item.querySelector('.spec-number');
+              const target = parseFloat(item.dataset.target);
+              const suffix = item.dataset.suffix || '';
+              const wrap = item.querySelector('.spec-number-wrap');
+              if (!wrap.querySelector('.spec-suffix') && suffix) {
+                const s = document.createElement('span');
+                s.className = 'spec-suffix';
+                s.textContent = suffix;
+                wrap.appendChild(s);
+              }
+              countUp(numEl, target);
+            }, i * 200);
+          });
+          specObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    specObserver.observe(document.getElementById('specs'));
+
+    /* ===== HERO STAGE: deal cards + mouse parallax + cursor spotlight ===== */
+    (function() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const curtain = document.getElementById('velvetCurtain');
+      const cardFan = document.getElementById('cardFan');
+      const cards = document.querySelectorAll('.play-card');
+      const spotlight = document.getElementById('cursorSpotlight');
+
+      // Hide curtain after parting animation completes (1.7s = 0.3s delay + 1.4s anim)
+      if (curtain) {
+        setTimeout(() => curtain.classList.add('done'), 1900);
+      }
+
+      // Deal cards with stagger after curtain starts opening
+      if (!prefersReduced) {
+        const dealDelays = [1450, 1620, 1790, 1960];
+        cards.forEach((card, i) => {
+          setTimeout(() => card.classList.add('dealt'), dealDelays[i]);
+        });
+      } else {
+        cards.forEach(card => card.classList.add('dealt'));
+      }
+
+      // Mouse parallax (tilt the fan as a whole + move spotlight)
+      let targetRx = 0, targetRy = 0, curRx = 0, curRy = 0;
+      let targetCx = window.innerWidth / 2, targetCy = window.innerHeight / 2;
+      let curCx = targetCx, curCy = targetCy;
+      let parallaxActive = false;
+
+      function onMouseMove(e) {
+        const nx = (e.clientX / window.innerWidth - 0.5) * 2;  // -1 to 1
+        const ny = (e.clientY / window.innerHeight - 0.5) * 2;
+        targetRy = nx * 9;   // tilt fan horizontally based on mouse X
+        targetRx = -ny * 6;  // tilt fan vertically based on mouse Y
+        targetCx = e.clientX;
+        targetCy = e.clientY;
+        if (!parallaxActive) {
+          parallaxActive = true;
+          spotlight && spotlight.classList.add('ready');
+          requestAnimationFrame(updateParallax);
+        }
+      }
+
+      function updateParallax() {
+        // Smooth lerp toward target
+        curRx += (targetRx - curRx) * 0.08;
+        curRy += (targetRy - curRy) * 0.08;
+        curCx += (targetCx - curCx) * 0.15;
+        curCy += (targetCy - curCy) * 0.15;
+        if (cardFan) {
+          cardFan.style.setProperty('--fan-rx', curRx.toFixed(2) + 'deg');
+          cardFan.style.setProperty('--fan-ry', curRy.toFixed(2) + 'deg');
+        }
+        if (spotlight) {
+          spotlight.style.setProperty('--cx', curCx.toFixed(0) + 'px');
+          spotlight.style.setProperty('--cy', curCy.toFixed(0) + 'px');
+        }
+        const dist = Math.abs(targetRx - curRx) + Math.abs(targetRy - curRy)
+                   + Math.abs(targetCx - curCx) + Math.abs(targetCy - curCy);
+        if (dist > 0.05) requestAnimationFrame(updateParallax);
+        else parallaxActive = false;
+      }
+
+      if (!prefersReduced) {
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        // Mobile / touch: subtle gyro-like wobble using device orientation if available
+        window.addEventListener('deviceorientation', (e) => {
+          if (e.gamma == null || e.beta == null) return;
+          const ny = Math.max(-1, Math.min(1, e.beta / 45));
+          const nx = Math.max(-1, Math.min(1, e.gamma / 45));
+          targetRy = nx * 6;
+          targetRx = -ny * 4;
+          if (!parallaxActive) { parallaxActive = true; requestAnimationFrame(updateParallax); }
+        }, { passive: true });
+      }
+    })();
+
+    /* ===== THREE.JS CARD SCANNER ===== */
+    (function() {
+      const canvasEl = document.getElementById('scannerCanvas');
+      const container = canvasEl.parentElement;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      camera.position.set(0, 0, 6);
+
+      const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      function resizeScanner() {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      resizeScanner();
+      window.addEventListener('resize', resizeScanner);
+
+      // Card-shaped particle grid (poker card 2.5 x 3.5)
+      const cardW = 2.5;
+      const cardH = 3.5;
+      const cols = 50;
+      const rows = 70;
+      const particleCount = cols * rows;
+
+      const positions = new Float32Array(particleCount * 3);
+      const targets = new Float32Array(particleCount * 3);
+      const randoms = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+
+      // Gold = #c8a96e = (200, 169, 110) / 255 = (0.784, 0.663, 0.431)
+      // Bright gold = #e0c084 = (224, 192, 132) / 255 = (0.878, 0.753, 0.518)
+      // Cream = #ede4cf = (237, 228, 207) / 255 = (0.929, 0.894, 0.812)
+
+      let idx = 0;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const tx = (x / (cols - 1) - 0.5) * cardW;
+          const ty = (y / (rows - 1) - 0.5) * cardH;
+          targets[idx * 3] = tx;
+          targets[idx * 3 + 1] = ty;
+          targets[idx * 3 + 2] = 0;
+
+          randoms[idx * 3] = (Math.random() - 0.5) * 12;
+          randoms[idx * 3 + 1] = (Math.random() - 0.5) * 12;
+          randoms[idx * 3 + 2] = (Math.random() - 0.5) * 8;
+
+          positions[idx * 3] = randoms[idx * 3];
+          positions[idx * 3 + 1] = randoms[idx * 3 + 1];
+          positions[idx * 3 + 2] = randoms[idx * 3 + 2];
+
+          const isBorder = x === 0 || x === cols - 1 || y === 0 || y === rows - 1
+                        || x === 1 || x === cols - 2 || y === 1 || y === rows - 2;
+          // Center area = the "?" symbol suggesting the hidden card mystery
+          const cx = x - cols / 2, cy = y - rows / 2;
+          const isCenter = Math.abs(cx) < cols * 0.06 && Math.abs(cy) < rows * 0.18;
+
+          let r, g, b;
+          if (isBorder) {
+            r = 0.878; g = 0.753; b = 0.518; // bright gold
+          } else if (isCenter) {
+            r = 0.929; g = 0.894; b = 0.812; // cream
+          } else {
+            r = 0.62; g = 0.55; b = 0.4; // dim gold
+          }
+          colors[idx * 3] = r;
+          colors[idx * 3 + 1] = g;
+          colors[idx * 3 + 2] = b;
+          idx++;
+        }
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geometry.userData = { targets, randoms };
+
+      const material = new THREE.PointsMaterial({
+        size: 0.035,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.95,
+        sizeAttenuation: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+
+      let formProgress = 0;
+      let targetProgress = 0;
+      let dragging = false, prevX = 0, prevY = 0;
+      let rotationY = 0, rotationX = 0;
+      let autoRotate = true;
+
+      const scannerObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) targetProgress = 1;
+        });
+      }, { threshold: 0.2 });
+      scannerObserver.observe(container);
+
+      canvasEl.addEventListener('click', () => {
+        if (dragging) return;
+        targetProgress = 0;
+        setTimeout(() => { targetProgress = 1; }, 700);
+      });
+
+      canvasEl.addEventListener('mousedown', (e) => {
+        dragging = true; prevX = e.clientX; prevY = e.clientY; autoRotate = false;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - prevX;
+        const dy = e.clientY - prevY;
+        rotationY += dx * 0.008;
+        rotationX += dy * 0.005;
+        rotationX = Math.max(-0.7, Math.min(0.7, rotationX));
+        prevX = e.clientX; prevY = e.clientY;
+      });
+      window.addEventListener('mouseup', () => { dragging = false; });
+      canvasEl.addEventListener('touchstart', (e) => {
+        dragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY; autoRotate = false;
+      }, { passive: true });
+      canvasEl.addEventListener('touchmove', (e) => {
+        if (!dragging) return;
+        const dx = e.touches[0].clientX - prevX;
+        const dy = e.touches[0].clientY - prevY;
+        rotationY += dx * 0.008;
+        rotationX += dy * 0.005;
+        rotationX = Math.max(-0.7, Math.min(0.7, rotationX));
+        prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+      }, { passive: true });
+      canvasEl.addEventListener('touchend', () => { dragging = false; }, { passive: true });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        formProgress += (targetProgress - formProgress) * 0.05;
+
+        const posAttr = geometry.attributes.position;
+        const arr = posAttr.array;
+        const tArr = geometry.userData.targets;
+        const rArr = geometry.userData.randoms;
+        const time = performance.now() * 0.001;
+        for (let i = 0; i < particleCount; i++) {
+          const ix = i * 3;
+          const wave = Math.sin(time * 1.5 + i * 0.1) * 0.015 * formProgress;
+          arr[ix] = rArr[ix] * (1 - formProgress) + tArr[ix] * formProgress;
+          arr[ix + 1] = rArr[ix + 1] * (1 - formProgress) + tArr[ix + 1] * formProgress + wave;
+          arr[ix + 2] = rArr[ix + 2] * (1 - formProgress) + tArr[ix + 2] * formProgress + wave * 0.5;
+        }
+        posAttr.needsUpdate = true;
+
+        if (autoRotate) rotationY += 0.002;
+        points.rotation.y = rotationY;
+        points.rotation.x = rotationX;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+  </script>
+</body>
+</html>
